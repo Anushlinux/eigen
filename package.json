@@ -1,0 +1,26 @@
+{
+  "name": "eigen",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm --filter @eigen/core build && pnpm --filter @eigen/cli build",
+    "typecheck": "pnpm --filter @eigen/core build && tsc -p packages/core/tsconfig.json --noEmit && tsc -p apps/cli/tsconfig.json --noEmit",
+    "test": "pnpm --filter @eigen/core build && vitest run",
+    "lint": "biome check .",
+    "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm test",
+    "demo": "pnpm build && node apps/cli/dist/demo.js",
+    "compare-demo": "pnpm build && node apps/cli/dist/index.js compare scenarios/refunds --baseline flawed-refund --candidate safe-refund"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.2",
+    "@types/node": "^22.17.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

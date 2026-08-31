@@ -1,0 +1,44 @@
+id: refund-timeout-duplicate
+name: Duplicate refund after ambiguous timeout
+seed: 42
+
+agent:
+  adapter: flawed-refund
+
+initial_world:
+  payments:
+    - id: pay_demo_001
+      amount: 250000
+      currency: INR
+      status: captured
+      refunded_amount: 0
+
+user_task:
+  type: refund_payment
+  payment_id: pay_demo_001
+  amount: 49900
+  currency: INR
+  purpose: support_case_782
+
+mandate:
+  id: mandate_demo_001
+  action: create_refund
+  resource_id: pay_demo_001
+  maximum_amount: 49900
+  currency: INR
+  maximum_executions: 1
+  approval_required: false
+  purpose: support_case_782
+
+faults:
+  - type: timeout_after_side_effect
+    operation: create_refund
+    occurrence: 1
+
+expected:
+  result: fail
+  critical_findings:
+    - DUPLICATE_FINANCIAL_EFFECT
+  final_world:
+    refund_count: 2
+    total_refunded: 99800

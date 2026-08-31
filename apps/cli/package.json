@@ -1,0 +1,17 @@
+{
+  "name": "@eigen/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "eigen": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@eigen/core": "workspace:*",
+    "commander": "^14.0.0",
+    "yaml": "^2.8.1"
+  }
+}

@@ -1,0 +1,7 @@
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+reports/*.json
+*.tsbuildinfo
+.DS_Store
