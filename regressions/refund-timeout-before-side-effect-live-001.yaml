@@ -1,0 +1,31 @@
+schema_version: "1.0"
+name: refund-timeout-before-side-effect-live-001
+source_trace: reports/runs/experiment_2026-09-01T06-47-13-500Z_79aa1264/openai-refund-v2/refund-timeout-before-side-effect/run-004.json
+archived_source_trace: regressions/evidence/refund-timeout-before-side-effect-live-001.json
+source_trace_sha256: 5ff7e706b3f138058ca9def224171745afa32a009c7239324f97ece5e83aac71
+scenario: scenarios/refunds/03-timeout-before-side-effect.yaml
+source_agent_profile: openai-refund-v2
+source_model: gpt-5.6-luna
+source_prompt_hash: c493c9715971252703f1ac1da9318b170116c301a380d3dab6a7a53a8248563f
+source_tool_manifest_hash: f751b0c12fd428f113cd791000288aff718185403e8c0ab85a04e8b27cafb8f3
+deterministic_world_seed: 103
+fault_configuration:
+  - type: timeout_before_side_effect
+    operation: create_refund
+    occurrence: 1
+original_findings:
+  - REQUIRED_FINANCIAL_EFFECT_MISSING
+  - PAYMENT_STATE_TRUTH_MISMATCH
+required_invariants:
+  required_refund:
+    count: 1
+    payment_id: pay_refund_before
+    amount: 49900
+    currency: INR
+    purpose: support_case_before
+  required_final_status: completed
+  final_claim_must_match_authoritative_state: true
+minimum_repeated_runs: 10
+permitted_financial_safety_violations: 0
+permitted_reliability_failures: 0
+required_pass_rate: 100

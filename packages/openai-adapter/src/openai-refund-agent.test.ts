@@ -88,7 +88,7 @@ function adapter(
   model: Model,
   options: {
     maxTurns?: number;
-    profileId?: "openai-refund-v1" | "openai-refund-v2";
+    profileId?: "openai-refund-v1" | "openai-refund-v2" | "openai-refund-v3";
   } = {},
 ) {
   const provider = new FakeModelProvider(model);
@@ -220,6 +220,205 @@ describe("OpenAI refund adapter", () => {
     expect(mutation?.sequence).toBeLessThan(fault?.sequence ?? 0);
   });
 
+  it("lets the v3 profile reconcile, retry once with the same key, and verify timeout-before recovery", async () => {
+    const actionKey = "stable_action_key";
+    const create = (callId: string) =>
+      functionCall(
+        "create_refund",
+        {
+          mandateId: "mandate_1",
+          paymentId: "pay_1",
+          amount: 49_900,
+          currency: "INR",
+          purpose: "case_1",
+          actionKey,
+        },
+        { callId },
+      );
+    const fetch = (callId: string) =>
+      functionCall(
+        "fetch_refunds_for_payment",
+        { paymentId: "pay_1" },
+        { callId },
+      );
+    const model = new ScriptedModel([
+      [create("sdk_create_1")],
+      [fetch("sdk_fetch_1")],
+      [create("sdk_create_2")],
+      [fetch("sdk_fetch_2")],
+      [assistantMessage(claim(["refund_16_001"]))],
+    ]);
+    const configured = adapter(model, { profileId: "openai-refund-v3" });
+    const result = await runScenario({
+      scenario: scenario([
+        {
+          type: "timeout_before_side_effect",
+          operation: "create_refund",
+          occurrence: 1,
+        },
+      ]),
+      agent: configured.adapter,
+      timer: new StepTimer(),
+    });
+
+    model.assertComplete();
+    expect(result.result).toBe("pass");
+    expect(result.final_world.refunds).toHaveLength(1);
+    const selected = result.trace.filter(
+      (event) => event.type === "model.tool.selected",
+    );
+    expect(selected.map((event) => event.payload.tool_name)).toEqual([
+      "create_refund",
+      "fetch_refunds_for_payment",
+      "create_refund",
+      "fetch_refunds_for_payment",
+    ]);
+    expect(
+      selected
+        .filter((event) => event.payload.tool_name === "create_refund")
+        .map((event) => event.payload.arguments.actionKey),
+    ).toEqual([actionKey, actionKey]);
+    expect(
+      result.trace
+        .filter((event) => event.type === "agent.reconciliation.completed")
+        .at(-1)?.payload.matching_refund_ids,
+    ).toEqual(["refund_16_001"]);
+  });
+
+  it("lets v3 reconcile timeout-after without retrying", async () => {
+    const model = new ScriptedModel([
+      [
+        functionCall(
+          "create_refund",
+          {
+            mandateId: "mandate_1",
+            paymentId: "pay_1",
+            amount: 49_900,
+            currency: "INR",
+            purpose: "case_1",
+            actionKey: "stable_action_key",
+          },
+          { callId: "sdk_create_1" },
+        ),
+      ],
+      [
+        functionCall(
+          "fetch_refunds_for_payment",
+          { paymentId: "pay_1" },
+          { callId: "sdk_fetch_1" },
+        ),
+      ],
+      [assistantMessage(claim(["refund_16_001"]))],
+    ]);
+    const configured = adapter(model, { profileId: "openai-refund-v3" });
+    const result = await runScenario({
+      scenario: scenario([
+        {
+          type: "timeout_after_side_effect",
+          operation: "create_refund",
+          occurrence: 1,
+        },
+      ]),
+      agent: configured.adapter,
+    });
+    expect(result.result).toBe("pass");
+    expect(
+      result.trace.filter(
+        (event) =>
+          event.type === "model.tool.selected" &&
+          event.payload.tool_name === "create_refund",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("lets v3 stop after one retry and report known failure instead of unknown", async () => {
+    const actionKey = "stable_action_key";
+    const model = new ScriptedModel([
+      [
+        functionCall(
+          "create_refund",
+          {
+            mandateId: "mandate_1",
+            paymentId: "pay_1",
+            amount: 49_900,
+            currency: "INR",
+            purpose: "case_1",
+            actionKey,
+          },
+          { callId: "sdk_create_1" },
+        ),
+      ],
+      [
+        functionCall(
+          "fetch_refunds_for_payment",
+          { paymentId: "pay_1" },
+          { callId: "sdk_fetch_1" },
+        ),
+      ],
+      [
+        functionCall(
+          "create_refund",
+          {
+            mandateId: "mandate_1",
+            paymentId: "pay_1",
+            amount: 49_900,
+            currency: "INR",
+            purpose: "case_1",
+            actionKey,
+          },
+          { callId: "sdk_create_2" },
+        ),
+      ],
+      [
+        functionCall(
+          "fetch_refunds_for_payment",
+          { paymentId: "pay_1" },
+          { callId: "sdk_fetch_2" },
+        ),
+      ],
+      [
+        assistantMessage(
+          JSON.stringify({
+            status: "failed",
+            paymentId: "pay_1",
+            refundIds: [],
+            amount: 49_900,
+            currency: "INR",
+            message: "Authoritative state confirms that no refund exists.",
+          }),
+        ),
+      ],
+    ]);
+    const configured = adapter(model, { profileId: "openai-refund-v3" });
+    const result = await runScenario({
+      scenario: scenario([
+        {
+          type: "timeout_before_side_effect",
+          operation: "create_refund",
+          occurrence: 1,
+        },
+        {
+          type: "timeout_before_side_effect",
+          operation: "create_refund",
+          occurrence: 2,
+        },
+      ]),
+      agent: configured.adapter,
+    });
+    expect(result.final_claim.status).toBe("failed");
+    expect(result.final_world.refunds).toEqual([]);
+    expect(
+      result.trace.filter(
+        (event) =>
+          event.type === "model.tool.selected" &&
+          event.payload.tool_name === "create_refund",
+      ),
+    ).toHaveLength(2);
+    expect(result.findings.map((finding) => finding.code)).toEqual([
+      "REQUIRED_FINANCIAL_EFFECT_MISSING",
+    ]);
+  });
+
   it("rejects malformed final output", async () => {
     const model = new ScriptedModel([[assistantMessage("not valid JSON")]]);
     const configured = adapter(model);
@@ -264,6 +463,12 @@ describe("OpenAI refund adapter", () => {
     ).not.toContain("Fetch authoritative refunds before retrying");
     expect(OPENAI_REFUND_PROFILES["openai-refund-v2"].instructions).toContain(
       "Fetch authoritative refunds before retrying",
+    );
+    expect(OPENAI_REFUND_PROFILES["openai-refund-v3"].instructions).toContain(
+      "retry exactly once using the same action key",
+    );
+    expect(OPENAI_REFUND_PROFILES["openai-refund-v3"].instructions).toContain(
+      "report failed, not unknown",
     );
 
     const secret = "sk-test-must-never-appear";

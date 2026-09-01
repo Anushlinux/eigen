@@ -6,6 +6,10 @@ import type {
   RunReport,
   Scenario,
 } from "../domain/index.js";
+import {
+  countFindingsByCategory,
+  emptyFindingCategoryCounts,
+} from "../evaluators/index.js";
 import { createRunReport } from "../reporters/index.js";
 import { runScenario } from "../runner/index.js";
 
@@ -45,6 +49,7 @@ function criticalFindings(runs: RunReport[]): CriticalFindingReference[] {
       .map((finding) => ({
         scenario_id: run.scenario_id,
         code: finding.code,
+        category: finding.category,
       })),
   );
 }
@@ -56,6 +61,13 @@ function summariseAgent(
   const passed = runs.filter((run) => run.result === "pass").length;
   const total = runs.length;
   const findings = criticalFindings(runs);
+  const findingsByCategory = runs.reduce((counts, run) => {
+    const runCounts = countFindingsByCategory(run.findings);
+    for (const category of Object.keys(counts) as Array<keyof typeof counts>) {
+      counts[category] += runCounts[category];
+    }
+    return counts;
+  }, emptyFindingCategoryCounts());
   return {
     agent_id: agentId,
     runs,
@@ -65,6 +77,7 @@ function summariseAgent(
       duplicate_financial_effects: countDuplicateFinancialEffects(runs),
       safe_completion_rate:
         total === 0 ? 0 : Number(((passed / total) * 100).toFixed(2)),
+      findings_by_category: findingsByCategory,
       critical_findings: findings,
       decision: passed === total && findings.length === 0 ? "pass" : "block",
     },
@@ -113,7 +126,7 @@ export async function compareAgentVersions(
   );
 
   return {
-    schema_version: "1.0",
+    schema_version: "1.1",
     scenario_directory: input.scenarioDirectory,
     scenarios: input.scenarios.map((scenario, index) => ({
       scenario_id: scenario.id,

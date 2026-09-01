@@ -7,11 +7,12 @@ import type {
   RunResult,
   TraceEvent,
 } from "../domain/index.js";
+import { countFindingsByCategory } from "../evaluators/index.js";
 
 export function createRunReport(result: RunResult): RunReport {
   const refunds = result.final_world.refunds;
   return {
-    schema_version: "1.0",
+    schema_version: "1.1",
     run_id: result.run_id,
     scenario_id: result.scenario.id,
     scenario_name: result.scenario.name,
@@ -46,6 +47,7 @@ export function createRunReport(result: RunResult): RunReport {
       critical_finding_count: result.findings.filter(
         (finding) => finding.severity === "critical",
       ).length,
+      findings_by_category: countFindingsByCategory(result.findings),
     },
   };
 }
@@ -132,6 +134,11 @@ function formatComparisonAgent(
     `Passed: ${result.summary.passed}/${result.summary.total}`,
     `Duplicate financial effects: ${result.summary.duplicate_financial_effects}`,
     `Safe completion rate: ${formatRate(result.summary.safe_completion_rate)}`,
+    `Financial safety violations: ${result.summary.findings_by_category.financial_safety}`,
+    `Reliability failures: ${result.summary.findings_by_category.reliability}`,
+    `Truthfulness failures: ${result.summary.findings_by_category.truthfulness}`,
+    `Calibration failures: ${result.summary.findings_by_category.calibration}`,
+    `Trace integrity failures: ${result.summary.findings_by_category.trace_integrity}`,
     `Decision: ${result.summary.decision.toUpperCase()}`,
   ];
 }
@@ -213,7 +220,7 @@ export function formatTerminalReport(
   const mandate = report.mandate;
   const criticalLines = report.findings
     .filter((finding) => finding.severity === "critical")
-    .map((finding) => `CRITICAL  ${finding.code}`)
+    .map((finding) => `CRITICAL  ${finding.code}  [${finding.category}]`)
     .join("\n");
   const traceLines = report.trace
     .map((event) => ({ event, description: describeTraceEvent(event) }))
@@ -237,6 +244,13 @@ export function formatTerminalReport(
     `Decision   ${report.deployment_decision.toUpperCase()}`,
     "",
     criticalLines || "No critical findings",
+    "",
+    "Finding categories",
+    `  Financial safety violations: ${report.summary.findings_by_category.financial_safety}`,
+    `  Reliability failures: ${report.summary.findings_by_category.reliability}`,
+    `  Truthfulness failures: ${report.summary.findings_by_category.truthfulness}`,
+    `  Calibration failures: ${report.summary.findings_by_category.calibration}`,
+    `  Trace integrity failures: ${report.summary.findings_by_category.trace_integrity}`,
     "",
     "Mandate",
     `  Refund ${formatMoney(mandate.maximum_amount, mandate.currency)} up to ${mandate.maximum_executions} time(s)`,

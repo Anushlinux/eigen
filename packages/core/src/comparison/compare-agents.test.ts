@@ -91,6 +91,7 @@ describe("agent comparison", () => {
     expect(report.critical_findings_removed).toContainEqual({
       scenario_id: "timeout-after",
       code: "DUPLICATE_FINANCIAL_EFFECT",
+      category: "financial_safety",
     });
     expect(report.critical_findings_added).toEqual([]);
     expect(report.candidate.runs.every((run) => run.seed > 0)).toBe(true);

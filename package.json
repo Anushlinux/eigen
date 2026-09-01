@@ -15,6 +15,7 @@
     "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm test",
     "demo": "pnpm build && node apps/cli/dist/demo.js",
     "compare-demo": "pnpm build && node apps/cli/dist/index.js compare scenarios/refunds --baseline flawed-refund --candidate safe-refund",
+    "regression-demo": "pnpm build && node apps/cli/dist/regression-demo.js",
     "eigen": "pnpm build && node --env-file-if-exists=.env apps/cli/dist/index.js",
     "llm-demo": "pnpm eigen experiment scenarios/refunds --agents openai-refund-v1,openai-refund-v2 --runs 5 --allow-failures"
   },

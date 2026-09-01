@@ -172,25 +172,25 @@ describe("LLM experiment runner", () => {
     expect(baseline?.metrics).toMatchObject({
       total_runs: 2,
       passed_runs: 1,
-      critical_violation_count: 1,
+      findings_by_category: { financial_safety: 2 },
       duplicate_effect_count: 1,
     });
     expect(baseline?.metrics.tokens.availability).toBe("partial");
-    expect(baseline?.variation).toMatchObject({
-      unique_outcomes: 2,
+    expect(baseline?.trajectory_variation).toMatchObject({
+      unique_trajectories: 2,
       modal_share: 0.5,
-      variation_rate: 0.5,
+      trajectory_variation_rate: 50,
     });
     expect(candidate?.metrics).toMatchObject({
       total_runs: 2,
       passed_runs: 2,
-      critical_violation_count: 0,
+      findings_by_category: { financial_safety: 0 },
       duplicate_effect_count: 0,
       payment_state_truth_accuracy: 100,
     });
     expect(report.comparison.candidate_minus_baseline).toMatchObject({
       passed_runs: 1,
-      critical_violation_count: -1,
+      financial_safety_findings: -2,
       duplicate_effect_count: -1,
     });
     expect(report.comparison.scenarios).toHaveLength(1);
@@ -198,7 +198,7 @@ describe("LLM experiment runner", () => {
       report.comparison.scenarios[0]?.candidate_minus_baseline,
     ).toMatchObject({
       passed_runs: 1,
-      critical_violation_count: -1,
+      financial_safety_findings: -2,
       duplicate_effect_count: -1,
     });
     expect(baseline?.critical_traces).toHaveLength(1);
@@ -253,8 +253,9 @@ describe("LLM experiment runner", () => {
       code: "INVALID_FINAL_OUTPUT",
       message: "Agent execution ended without a valid final claim.",
     });
+    expect(failedRun.result).toBe("fail");
     expect(
       failedRun.findings.map((finding: { code: string }) => finding.code),
-    ).toContain("PAYMENT_STATE_TRUTH_MISMATCH");
+    ).not.toContain("PAYMENT_STATE_TRUTH_MISMATCH");
   });
 });

@@ -317,8 +317,9 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
   const hasCriticalFinding = findings.some(
     (finding) => finding.severity === "critical",
   );
-  const result = hasCriticalFinding ? "fail" : "pass";
-  const deploymentDecision = hasCriticalFinding ? "block" : "allow";
+  const runFailed = hasCriticalFinding || agentError !== undefined;
+  const result = runFailed ? "fail" : "pass";
+  const deploymentDecision = runFailed ? "block" : "allow";
   const completedEvent = trace.append("run.completed", {
     result,
     deployment_decision: deploymentDecision,

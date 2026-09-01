@@ -4,6 +4,7 @@ dist/
 coverage/
 reports/*.json
 reports/runs/
+reports/regressions/
 *.tsbuildinfo
 .DS_Store
 .env

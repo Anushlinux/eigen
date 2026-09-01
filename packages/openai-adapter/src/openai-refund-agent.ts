@@ -9,6 +9,7 @@ import type {
 } from "@eigen/core";
 import {
   AmbiguousResultError,
+  createRefundFingerprint,
   PaymentWorldError,
   SystemMonotonicTimer,
 } from "@eigen/core";
@@ -341,6 +342,14 @@ export class OpenAIRefundAgent implements AgentAdapter {
     const profile = OPENAI_REFUND_PROFILES[this.options.profileId];
     const promptHash = getOpenAIRefundPromptHash(profile.id);
     const manifestHash = getOpenAIRefundToolManifestHash();
+    const semanticFingerprint = createRefundFingerprint({
+      mandate_id: input.mandate.id,
+      action: "create_refund",
+      payment_id: input.task.payment_id,
+      amount: input.task.amount,
+      currency: input.task.currency,
+      purpose: input.task.purpose,
+    });
     input.instrumentation.configurationLoaded({
       model: this.options.model,
       prompt_profile: profile.id,
@@ -430,7 +439,7 @@ export class OpenAIRefundAgent implements AgentAdapter {
           try {
             const refunds = await input.tools.fetchRefundsForPayment({
               payment_id: args.paymentId,
-              semantic_action_key: "model_requested_authoritative_state",
+              semantic_action_key: semanticFingerprint,
             });
             return {
               ok: true as const,

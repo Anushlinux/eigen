@@ -95,10 +95,19 @@ export type FindingCode =
   | "DUPLICATE_FINANCIAL_EFFECT"
   | "REQUIRED_FINANCIAL_EFFECT_MISSING"
   | "PAYMENT_STATE_TRUTH_MISMATCH"
+  | "KNOWN_STATE_REPORTED_UNKNOWN"
   | "TRACE_INCOMPLETE";
+
+export type FindingCategory =
+  | "financial_safety"
+  | "reliability"
+  | "truthfulness"
+  | "calibration"
+  | "trace_integrity";
 
 export interface Finding {
   code: FindingCode;
+  category: FindingCategory;
   severity: "info" | "warning" | "critical";
   title: string;
   explanation: string;
@@ -278,7 +287,7 @@ export interface RunResult {
 }
 
 export interface RunReport {
-  schema_version: "1.0";
+  schema_version: "1.1";
   run_id: string;
   scenario_id: string;
   scenario_name: string;
@@ -307,7 +316,16 @@ export interface RunReport {
     refund_count: number;
     total_refunded: number;
     critical_finding_count: number;
+    findings_by_category: FindingCategoryCounts;
   };
+}
+
+export interface FindingCategoryCounts {
+  financial_safety: number;
+  reliability: number;
+  truthfulness: number;
+  calibration: number;
+  trace_integrity: number;
 }
 
 export interface RunMetrics {
@@ -322,6 +340,7 @@ export interface RunMetrics {
 export interface CriticalFindingReference {
   scenario_id: string;
   code: FindingCode;
+  category: FindingCategory;
 }
 
 export interface AgentComparisonResult {
@@ -332,13 +351,14 @@ export interface AgentComparisonResult {
     total: number;
     duplicate_financial_effects: number;
     safe_completion_rate: number;
+    findings_by_category: FindingCategoryCounts;
     critical_findings: CriticalFindingReference[];
     decision: "pass" | "block";
   };
 }
 
 export interface ComparisonReport {
-  schema_version: "1.0";
+  schema_version: "1.1";
   scenario_directory: string;
   scenarios: Array<{
     scenario_id: string;
@@ -363,10 +383,10 @@ export interface ExperimentTokenSummary {
   average_output_tokens?: number | undefined;
 }
 
-export interface ExperimentVariationSummary {
-  unique_outcomes: number;
+export interface ExperimentTrajectoryVariationSummary {
+  unique_trajectories: number;
   modal_share: number;
-  variation_rate: number;
+  trajectory_variation_rate: number;
   signatures: Array<{
     signature: string;
     count: number;
@@ -377,8 +397,8 @@ export interface ExperimentMetrics {
   total_runs: number;
   passed_runs: number;
   safe_completion_rate: number;
-  critical_violation_count: number;
-  critical_violation_rate: number;
+  findings_by_category: FindingCategoryCounts;
+  outcome_instability_rate: number;
   duplicate_effect_count: number;
   duplicate_effect_rate: number;
   payment_state_truth_accuracy: number;
@@ -394,7 +414,7 @@ export interface ExperimentRunReference {
   result: "pass" | "fail";
   final_status: AgentClaim["status"];
   trace_path: string;
-  outcome_signature: string;
+  trajectory_signature: string;
   critical_finding_codes: FindingCode[];
   latency_ms: number;
   tool_call_count: number;
@@ -406,7 +426,7 @@ export interface ExperimentScenarioResult {
   scenario_id: string;
   scenario_name: string;
   metrics: ExperimentMetrics;
-  variation: ExperimentVariationSummary;
+  trajectory_variation: ExperimentTrajectoryVariationSummary;
   runs: ExperimentRunReference[];
 }
 
@@ -416,7 +436,7 @@ export interface ExperimentAgentResult {
   prompt_hash: string;
   tool_manifest_hash: string;
   metrics: ExperimentMetrics;
-  variation: ExperimentVariationSummary;
+  trajectory_variation: ExperimentTrajectoryVariationSummary;
   scenarios: ExperimentScenarioResult[];
   critical_traces: Array<{
     scenario_id: string;
@@ -431,7 +451,7 @@ export interface ExperimentAgentResult {
 }
 
 export interface ExperimentReport {
-  schema_version: "1.0";
+  schema_version: "1.1";
   experiment_id: string;
   created_at: string;
   scenario_directory: string;
@@ -446,4 +466,86 @@ export interface ExperimentReport {
       candidate_minus_baseline: Record<string, number | null>;
     }>;
   };
+}
+
+export interface RegressionRequiredInvariants {
+  required_refund: {
+    count: number;
+    payment_id: string;
+    amount: number;
+    currency: Currency;
+    purpose: string;
+  };
+  required_final_status: "completed";
+  final_claim_must_match_authoritative_state: true;
+}
+
+export interface RegressionManifest {
+  schema_version: "1.0";
+  name: string;
+  source_trace: string;
+  archived_source_trace: string;
+  source_trace_sha256: string;
+  scenario: string;
+  source_agent_profile: string;
+  source_model: string;
+  source_prompt_hash: string;
+  source_tool_manifest_hash: string;
+  deterministic_world_seed: number;
+  fault_configuration: FaultSpec[];
+  original_findings: string[];
+  required_invariants: RegressionRequiredInvariants;
+  minimum_repeated_runs: number;
+  permitted_financial_safety_violations: number;
+  permitted_reliability_failures: number;
+  required_pass_rate: number;
+}
+
+export interface RegressionMetrics {
+  total_runs: number;
+  passed_runs: number;
+  safe_completion_rate: number;
+  recovery_success_rate: number;
+  findings_by_category: FindingCategoryCounts;
+  outcome_instability_rate: number;
+  trajectory_variation_rate: number;
+  p50_latency_ms: number;
+  p95_latency_ms: number;
+  average_tool_call_count: number;
+  tokens: ExperimentTokenSummary;
+}
+
+export interface RegressionRunReference {
+  run_number: number;
+  result: "pass" | "fail";
+  trace_path: string;
+  finding_codes: FindingCode[];
+  final_status: AgentClaim["status"];
+}
+
+export interface RegressionAgentResult {
+  agent_id: string;
+  model: string;
+  prompt_hash: string;
+  tool_manifest_hash: string;
+  status: "VERIFIED" | "INTERMITTENT" | "UNCHANGED";
+  original_failure_reproduced: boolean;
+  metrics: RegressionMetrics;
+  runs: RegressionRunReference[];
+  failing_trace_paths: string[];
+}
+
+export interface RegressionReport {
+  schema_version: "1.0";
+  regression_id: string;
+  created_at: string;
+  manifest: string;
+  regression_name: string;
+  source_trace: string;
+  original_findings: string[];
+  runs_per_agent: number;
+  baseline_agent_id: string;
+  candidate_agent_id: string;
+  agents: RegressionAgentResult[];
+  candidate_status: RegressionAgentResult["status"];
 }

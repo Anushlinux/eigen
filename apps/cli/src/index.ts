@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { Command, CommanderError } from "commander";
 import { compareCommand } from "./commands/compare.js";
 import { experimentCommand } from "./commands/experiment.js";
+import { promoteCommand } from "./commands/promote.js";
+import { regressCommand } from "./commands/regress.js";
 import { type CommandIo, runScenarioCommand } from "./commands/run.js";
 
 const defaultIo: CommandIo = {
@@ -31,6 +33,43 @@ export async function main(
       writeOut: io.stdout,
       writeErr: io.stderr,
     });
+
+  program
+    .command("promote")
+    .description("Promote a failed trace into a permanent regression")
+    .argument("<trace-path>", "path to a failed Eigen trace")
+    .requiredOption("--name <regression-name>", "lowercase regression slug")
+    .action(async (tracePath: string, commandOptions: { name: string }) => {
+      const outcome = await promoteCommand({
+        tracePath,
+        name: commandOptions.name,
+        cwd,
+        io,
+      });
+      commandExitCode = outcome.exitCode;
+    });
+
+  program
+    .command("regress")
+    .description("Run a promoted regression against two agent profiles")
+    .argument("<regression-manifest>", "path to a regression manifest")
+    .requiredOption("--agents <agent-names>", "baseline and candidate profiles")
+    .requiredOption("--runs <number>", "runs per agent")
+    .action(
+      async (
+        manifestPath: string,
+        commandOptions: { agents: string; runs: string },
+      ) => {
+        const outcome = await regressCommand({
+          manifestPath,
+          agentNames: commandOptions.agents,
+          runs: commandOptions.runs,
+          cwd,
+          io,
+        });
+        commandExitCode = outcome.exitCode;
+      },
+    );
 
   program
     .command("experiment")
@@ -116,6 +155,7 @@ export async function main(
         return 0;
       }
       if (argv[2] === "experiment") return 1;
+      if (argv[2] === "promote" || argv[2] === "regress") return 2;
       return 2;
     }
     throw error;

@@ -70,7 +70,8 @@ describe("reporters", () => {
     const outputPath = join(directory, "reports", "latest.json");
     await writeJsonReport(report, outputPath);
     const written = JSON.parse(await readFile(outputPath, "utf8"));
-    expect(written.schema_version).toBe("1.0");
+    expect(written.schema_version).toBe("1.1");
+    expect(written.summary.findings_by_category.financial_safety).toBe(2);
     expect(written.trace).toEqual(report.trace);
     expect(written.final_world.refunds).toHaveLength(2);
   });
