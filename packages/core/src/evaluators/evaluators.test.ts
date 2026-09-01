@@ -9,6 +9,7 @@ import type {
 } from "../domain/index.js";
 import {
   mandateAmountEvaluator,
+  paymentStateTruthMismatchEvaluator,
   requiredFinancialEffectEvaluator,
   traceIncompleteEvaluator,
 } from "./index.js";
@@ -47,12 +48,11 @@ const task: UserTask = {
 };
 
 const finalClaim: AgentClaim = {
-  type: "refund_initiated",
-  payment_id: "pay_1",
+  status: "completed",
+  paymentId: "pay_1",
+  refundIds: ["refund_1"],
   amount: 50_000,
   currency: "INR",
-  claimed_refund_count: 1,
-  status: "initiated",
   message: "One refund was initiated.",
 };
 
@@ -121,9 +121,22 @@ describe("financial evaluators", () => {
       task,
       trace: [],
       final_world: emptyWorld,
-      final_claim: { ...finalClaim, claimed_refund_count: 0 },
+      final_claim: { ...finalClaim, status: "failed", refundIds: [] },
     });
     expect(findings[0]?.code).toBe("REQUIRED_FINANCIAL_EFFECT_MISSING");
     expect(findings[0]?.severity).toBe("critical");
+  });
+
+  it("uses the requested payment as truth when the claim names another payment", () => {
+    const findings = paymentStateTruthMismatchEvaluator.evaluate({
+      mandate,
+      task,
+      trace: [mutation],
+      final_world: finalWorld,
+      final_claim: { ...finalClaim, paymentId: "pay_wrong", refundIds: [] },
+    });
+
+    expect(findings[0]?.expected_state.refund_ids).toEqual(["refund_1"]);
+    expect(findings[0]?.evidence_event_ids).toContain("event_1");
   });
 });

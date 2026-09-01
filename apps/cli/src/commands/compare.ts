@@ -24,7 +24,9 @@ export interface CompareCommandOutcome {
   report?: ComparisonReport;
 }
 
-async function loadScenarios(directoryPath: string): Promise<Scenario[]> {
+export async function loadScenarios(
+  directoryPath: string,
+): Promise<Scenario[]> {
   const entries = await readdir(directoryPath, { withFileTypes: true });
   const scenarioFiles = entries
     .filter(

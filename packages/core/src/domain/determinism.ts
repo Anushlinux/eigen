@@ -2,6 +2,16 @@ export interface Clock {
   now(): string;
 }
 
+export interface MonotonicTimer {
+  now(): number;
+}
+
+export class SystemMonotonicTimer implements MonotonicTimer {
+  now(): number {
+    return performance.now();
+  }
+}
+
 export class DeterministicClock implements Clock {
   private tick = 0;
   private readonly baseTime: number;

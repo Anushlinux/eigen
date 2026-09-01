@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command, CommanderError } from "commander";
 import { compareCommand } from "./commands/compare.js";
+import { experimentCommand } from "./commands/experiment.js";
 import { type CommandIo, runScenarioCommand } from "./commands/run.js";
 
 const defaultIo: CommandIo = {
@@ -30,6 +31,41 @@ export async function main(
       writeOut: io.stdout,
       writeErr: io.stderr,
     });
+
+  program
+    .command("experiment")
+    .description("Repeat live LLM agents across a scenario directory")
+    .argument("<scenario-directory>", "directory containing YAML scenarios")
+    .requiredOption(
+      "--agents <agent-names>",
+      "two comma-separated agent profiles",
+    )
+    .requiredOption("--runs <number>", "runs per scenario")
+    .option(
+      "--allow-failures",
+      "return success while preserving BLOCK decisions",
+      false,
+    )
+    .action(
+      async (
+        scenarioDirectory: string,
+        commandOptions: {
+          agents: string;
+          runs: string;
+          allowFailures: boolean;
+        },
+      ) => {
+        const outcome = await experimentCommand({
+          scenarioDirectory,
+          agentNames: commandOptions.agents,
+          runs: commandOptions.runs,
+          allowFailures: commandOptions.allowFailures,
+          cwd,
+          io,
+        });
+        commandExitCode = outcome.exitCode;
+      },
+    );
 
   program
     .command("compare")
@@ -79,6 +115,7 @@ export async function main(
       ) {
         return 0;
       }
+      if (argv[2] === "experiment") return 1;
       return 2;
     }
     throw error;

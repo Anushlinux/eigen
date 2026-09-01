@@ -54,12 +54,11 @@ export interface FaultSpec {
 }
 
 export interface AgentClaim {
-  type: "refund_initiated";
-  payment_id: string;
+  status: "completed" | "pending" | "failed" | "unknown";
+  paymentId: string;
+  refundIds: string[];
   amount: number;
   currency: Currency;
-  claimed_refund_count: number;
-  status: "initiated" | "processed";
   message: string;
 }
 
@@ -77,7 +76,7 @@ export interface Scenario {
   name: string;
   seed: number;
   agent: {
-    adapter: "flawed-refund" | "safe-refund";
+    adapter: string;
   };
   initial_world: {
     payments: Payment[];
@@ -115,10 +114,42 @@ export interface TracePayloadMap {
     scenario_id: string;
     seed: number;
     agent_id: string;
+    run_number?: number | undefined;
   };
   "user.task.received": { task: UserTask };
   "mandate.loaded": { mandate: Mandate };
   "agent.message": { message: string };
+  "agent.configuration.loaded": {
+    model: string;
+    prompt_profile: string;
+    prompt_hash: string;
+    tool_manifest_hash: string;
+  };
+  "model.request.started": {
+    request_id: string;
+    model: string;
+    turn: number;
+  };
+  "model.request.finished": {
+    request_id: string;
+    model: string;
+    turn: number;
+    outcome: "success" | "error";
+    latency_ms: number;
+    input_tokens?: number | undefined;
+    output_tokens?: number | undefined;
+    error_code?: string | undefined;
+  };
+  "model.tool.selected": {
+    tool_name: string;
+    tool_call_id: string;
+    arguments: Record<string, unknown>;
+  };
+  "model.tool.result": {
+    tool_name: string;
+    tool_call_id: string;
+    result: unknown;
+  };
   "agent.retry": {
     operation: "create_refund";
     previous_call_id: string;
@@ -182,7 +213,22 @@ export interface TracePayloadMap {
     ambiguous: boolean;
     message: string;
   };
-  "agent.final_claim": { claim: AgentClaim };
+  "agent.run.failed": {
+    error_code: string;
+    message: string;
+  };
+  "agent.final_claim": {
+    claim: AgentClaim;
+    source: "agent" | "eigen_failure_fallback";
+  };
+  "run.metrics": {
+    latency_ms: number;
+    model_requests: number;
+    tool_calls: number;
+    input_tokens?: number | undefined;
+    output_tokens?: number | undefined;
+    token_usage_available: boolean;
+  };
   "world.snapshot": { snapshot: WorldSnapshot };
   "evaluator.finding": { finding: Finding };
   "run.completed": {
@@ -216,6 +262,15 @@ export interface RunResult {
   initial_world: WorldSnapshot;
   final_world: WorldSnapshot;
   final_claim: AgentClaim;
+  final_claim_source: "agent" | "eigen_failure_fallback";
+  run_number?: number | undefined;
+  agent_error?:
+    | {
+        code: string;
+        message: string;
+      }
+    | undefined;
+  metrics?: RunMetrics | undefined;
   trace: TraceEvent[];
   findings: Finding[];
   result: "pass" | "fail";
@@ -238,11 +293,30 @@ export interface RunReport {
   findings: Finding[];
   result: "pass" | "fail";
   deployment_decision: "allow" | "block";
+  final_claim: AgentClaim;
+  final_claim_source: "agent" | "eigen_failure_fallback";
+  run_number?: number | undefined;
+  agent_error?:
+    | {
+        code: string;
+        message: string;
+      }
+    | undefined;
+  metrics?: RunMetrics | undefined;
   summary: {
     refund_count: number;
     total_refunded: number;
     critical_finding_count: number;
   };
+}
+
+export interface RunMetrics {
+  latency_ms: number;
+  model_requests: number;
+  tool_calls: number;
+  input_tokens?: number | undefined;
+  output_tokens?: number | undefined;
+  token_usage_available: boolean;
 }
 
 export interface CriticalFindingReference {
@@ -278,4 +352,98 @@ export interface ComparisonReport {
   critical_findings_removed: CriticalFindingReference[];
   critical_findings_added: CriticalFindingReference[];
   decision: "pass" | "block";
+}
+
+export interface ExperimentTokenSummary {
+  availability: "complete" | "partial" | "unavailable";
+  reported_runs: number;
+  input_tokens: number;
+  output_tokens: number;
+  average_input_tokens?: number | undefined;
+  average_output_tokens?: number | undefined;
+}
+
+export interface ExperimentVariationSummary {
+  unique_outcomes: number;
+  modal_share: number;
+  variation_rate: number;
+  signatures: Array<{
+    signature: string;
+    count: number;
+  }>;
+}
+
+export interface ExperimentMetrics {
+  total_runs: number;
+  passed_runs: number;
+  safe_completion_rate: number;
+  critical_violation_count: number;
+  critical_violation_rate: number;
+  duplicate_effect_count: number;
+  duplicate_effect_rate: number;
+  payment_state_truth_accuracy: number;
+  p50_latency_ms: number;
+  p95_latency_ms: number;
+  average_tool_call_count: number;
+  tokens: ExperimentTokenSummary;
+}
+
+export interface ExperimentRunReference {
+  scenario_id: string;
+  run_number: number;
+  result: "pass" | "fail";
+  final_status: AgentClaim["status"];
+  trace_path: string;
+  outcome_signature: string;
+  critical_finding_codes: FindingCode[];
+  latency_ms: number;
+  tool_call_count: number;
+  input_tokens?: number | undefined;
+  output_tokens?: number | undefined;
+}
+
+export interface ExperimentScenarioResult {
+  scenario_id: string;
+  scenario_name: string;
+  metrics: ExperimentMetrics;
+  variation: ExperimentVariationSummary;
+  runs: ExperimentRunReference[];
+}
+
+export interface ExperimentAgentResult {
+  agent_id: string;
+  model: string;
+  prompt_hash: string;
+  tool_manifest_hash: string;
+  metrics: ExperimentMetrics;
+  variation: ExperimentVariationSummary;
+  scenarios: ExperimentScenarioResult[];
+  critical_traces: Array<{
+    scenario_id: string;
+    run_number: number;
+    trace_path: string;
+    findings: Array<{
+      code: FindingCode;
+      evidence_event_ids: string[];
+    }>;
+  }>;
+  decision: "pass" | "block";
+}
+
+export interface ExperimentReport {
+  schema_version: "1.0";
+  experiment_id: string;
+  created_at: string;
+  scenario_directory: string;
+  runs_per_scenario: number;
+  agents: ExperimentAgentResult[];
+  comparison: {
+    baseline_agent_id: string;
+    candidate_agent_id: string;
+    candidate_minus_baseline: Record<string, number | null>;
+    scenarios: Array<{
+      scenario_id: string;
+      candidate_minus_baseline: Record<string, number | null>;
+    }>;
+  };
 }

@@ -117,4 +117,16 @@ describe("CLI", () => {
     expect(exitCode).toBe(0);
     expect(capture.stdout.join("\n")).toContain("Demo assertion passed");
   });
+
+  it("returns 1 when required experiment configuration is missing", async () => {
+    const capture = captureIo();
+    const exitCode = await main(
+      ["node", "eigen", "experiment", scenarioDirectory],
+      process.cwd(),
+      capture.io,
+    );
+
+    expect(exitCode).toBe(1);
+    expect(capture.stderr.join("\n")).toContain("required option");
+  });
 });

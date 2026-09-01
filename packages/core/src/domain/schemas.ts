@@ -58,7 +58,7 @@ export const scenarioSchema = z
     name: identifierSchema,
     seed: z.number().int().nonnegative(),
     agent: z.object({
-      adapter: z.enum(["flawed-refund", "safe-refund"]),
+      adapter: identifierSchema,
     }),
     initial_world: z.object({ payments: z.array(paymentSchema).min(1) }),
     user_task: userTaskSchema,

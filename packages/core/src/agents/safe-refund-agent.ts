@@ -65,12 +65,11 @@ export class SafeRefundAgent implements AgentAdapter {
     );
 
     return {
-      type: "refund_initiated",
-      payment_id: input.task.payment_id,
+      status: "completed",
+      paymentId: input.task.payment_id,
+      refundIds: authoritativeRefunds.map((refund) => refund.id),
       amount: input.task.amount,
       currency: input.task.currency,
-      claimed_refund_count: authoritativeRefunds.length,
-      status: "processed",
       message: `Authoritative payment state shows ${authoritativeRefunds.length} processed refund totaling ${totalRefunded} ${input.task.currency} minor units.`,
     };
   }

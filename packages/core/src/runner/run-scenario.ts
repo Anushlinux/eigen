@@ -8,6 +8,8 @@ import {
   createRefundFingerprint,
   DeterministicClock,
   DeterministicIdGenerator,
+  type MonotonicTimer,
+  type Payment,
   type Refund,
   type RunResult,
   type Scenario,
@@ -24,10 +26,14 @@ import {
 export interface RunScenarioInput {
   scenario: Scenario;
   agent: AgentAdapter;
+  run_number?: number | undefined;
+  capture_agent_failures?: boolean | undefined;
+  timer?: MonotonicTimer | undefined;
 }
 
 export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
   const { scenario, agent } = input;
+  const runStarted = input.timer?.now();
   const clock = new DeterministicClock(scenario.seed);
   const ids = new DeterministicIdGenerator(scenario.seed);
   const trace = new TraceRecorder(clock, ids);
@@ -42,6 +48,7 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
     scenario_id: scenario.id,
     seed: scenario.seed,
     agent_id: agent.id,
+    ...(input.run_number === undefined ? {} : { run_number: input.run_number }),
   });
   trace.append("user.task.received", { task: scenario.user_task });
   trace.append("mandate.loaded", { mandate: scenario.mandate });
@@ -54,8 +61,16 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
     trace,
   });
   const lastAmbiguousCall = new Map<string, string>();
+  let modelRequests = 0;
+  let toolCalls = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let tokenUsageAvailable = false;
 
   const tools: AgentPaymentTools = {
+    async fetchPayment(agentInput): Promise<Payment> {
+      return world.fetchPayment({ payment_id: agentInput.payment_id });
+    },
     async createRefund(agentInput: AgentCreateRefundInput): Promise<Refund> {
       const callId = ids.next("call");
       const fingerprint = createRefundFingerprint({
@@ -171,15 +186,106 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
     },
   };
 
-  const finalClaim = await agent.run({
-    task: scenario.user_task,
-    mandate: scenario.mandate,
-    tools,
-    emitMessage(message) {
-      trace.append("agent.message", { message });
+  const instrumentation = {
+    configurationLoaded(configuration: {
+      model: string;
+      prompt_profile: string;
+      prompt_hash: string;
+      tool_manifest_hash: string;
+    }) {
+      trace.append("agent.configuration.loaded", configuration);
     },
+    modelRequestStarted(request: { model: string; turn: number }): string {
+      modelRequests += 1;
+      const requestId = ids.next("model_request");
+      trace.append(
+        "model.request.started",
+        { request_id: requestId, ...request },
+        requestId,
+      );
+      return requestId;
+    },
+    modelRequestFinished(request: {
+      request_id: string;
+      model: string;
+      turn: number;
+      outcome: "success" | "error";
+      latency_ms: number;
+      input_tokens?: number | undefined;
+      output_tokens?: number | undefined;
+      error_code?: string | undefined;
+    }) {
+      if (
+        request.input_tokens !== undefined ||
+        request.output_tokens !== undefined
+      ) {
+        tokenUsageAvailable = true;
+        inputTokens += request.input_tokens ?? 0;
+        outputTokens += request.output_tokens ?? 0;
+      }
+      trace.append("model.request.finished", request, request.request_id);
+    },
+    modelToolSelected(selection: {
+      tool_name: string;
+      tool_call_id: string;
+      arguments: Record<string, unknown>;
+    }) {
+      toolCalls += 1;
+      trace.append("model.tool.selected", selection, selection.tool_call_id);
+    },
+    modelToolResult(result: {
+      tool_name: string;
+      tool_call_id: string;
+      result: unknown;
+    }) {
+      trace.append("model.tool.result", result, result.tool_call_id);
+    },
+  };
+
+  let finalClaim: RunResult["final_claim"];
+  let finalClaimSource: RunResult["final_claim_source"] = "agent";
+  let agentError: RunResult["agent_error"];
+  try {
+    finalClaim = await agent.run({
+      task: scenario.user_task,
+      mandate: scenario.mandate,
+      tools,
+      instrumentation,
+      emitMessage(message) {
+        trace.append("agent.message", { message });
+      },
+    });
+  } catch (error) {
+    if (!input.capture_agent_failures) throw error;
+    const candidateCode =
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof error.code === "string"
+        ? error.code
+        : "AGENT_RUN_FAILED";
+    agentError = {
+      code: candidateCode,
+      message: "Agent execution ended without a valid final claim.",
+    };
+    trace.append("agent.run.failed", {
+      error_code: agentError.code,
+      message: agentError.message,
+    });
+    finalClaimSource = "eigen_failure_fallback";
+    finalClaim = {
+      status: "unknown",
+      paymentId: scenario.user_task.payment_id,
+      refundIds: [],
+      amount: scenario.user_task.amount,
+      currency: scenario.user_task.currency,
+      message: "The agent did not produce a valid final claim.",
+    };
+  }
+  trace.append("agent.final_claim", {
+    claim: finalClaim,
+    source: finalClaimSource,
   });
-  trace.append("agent.final_claim", { claim: finalClaim });
 
   const finalWorld = world.snapshot();
   trace.append("world.snapshot", { snapshot: finalWorld });
@@ -192,6 +298,20 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
   });
   for (const finding of findings) {
     trace.append("evaluator.finding", { finding });
+  }
+
+  let metrics: RunResult["metrics"];
+  if (input.timer && runStarted !== undefined) {
+    metrics = {
+      latency_ms: Math.max(0, input.timer.now() - runStarted),
+      model_requests: modelRequests,
+      tool_calls: toolCalls,
+      ...(tokenUsageAvailable
+        ? { input_tokens: inputTokens, output_tokens: outputTokens }
+        : {}),
+      token_usage_available: tokenUsageAvailable,
+    };
+    trace.append("run.metrics", metrics);
   }
 
   const hasCriticalFinding = findings.some(
@@ -213,6 +333,10 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
     initial_world: initialWorld,
     final_world: finalWorld,
     final_claim: finalClaim,
+    final_claim_source: finalClaimSource,
+    ...(input.run_number === undefined ? {} : { run_number: input.run_number }),
+    ...(agentError === undefined ? {} : { agent_error: agentError }),
+    ...(metrics === undefined ? {} : { metrics }),
     trace: trace.events(),
     findings,
     result,

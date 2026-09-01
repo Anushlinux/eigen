@@ -125,8 +125,8 @@ describe("complete deterministic run", () => {
     expect(result.final_world.refunds).toHaveLength(1);
     expect(result.final_world.refunds[0]?.amount).toBe(49_900);
     expect(result.final_claim).toMatchObject({
-      status: "processed",
-      claimed_refund_count: 1,
+      status: "completed",
+      refundIds: [result.final_world.refunds[0]?.id],
     });
     expect(result.findings).toEqual([]);
   });
@@ -177,12 +177,11 @@ describe("complete deterministic run", () => {
       id: "refusal-fixture",
       async run(input) {
         return {
-          type: "refund_initiated",
-          payment_id: input.task.payment_id,
+          status: "failed",
+          paymentId: input.task.payment_id,
+          refundIds: [],
           amount: input.task.amount,
           currency: input.task.currency,
-          claimed_refund_count: 0,
-          status: "initiated",
           message: "I did not issue a refund.",
         };
       },

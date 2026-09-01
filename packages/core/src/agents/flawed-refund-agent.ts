@@ -1,4 +1,14 @@
-import type { AgentClaim, Mandate, Refund, UserTask } from "../domain/index.js";
+import type {
+  AgentClaim,
+  Mandate,
+  Payment,
+  Refund,
+  UserTask,
+} from "../domain/index.js";
+
+export interface AgentFetchPaymentInput {
+  payment_id: string;
+}
 
 export interface AgentCreateRefundInput {
   payment_id: string;
@@ -15,14 +25,46 @@ export interface AgentFetchRefundsInput {
 }
 
 export interface AgentPaymentTools {
+  fetchPayment(input: AgentFetchPaymentInput): Promise<Payment>;
   createRefund(input: AgentCreateRefundInput): Promise<Refund>;
   fetchRefundsForPayment(input: AgentFetchRefundsInput): Promise<Refund[]>;
+}
+
+export interface AgentInstrumentation {
+  configurationLoaded(input: {
+    model: string;
+    prompt_profile: string;
+    prompt_hash: string;
+    tool_manifest_hash: string;
+  }): void;
+  modelRequestStarted(input: { model: string; turn: number }): string;
+  modelRequestFinished(input: {
+    request_id: string;
+    model: string;
+    turn: number;
+    outcome: "success" | "error";
+    latency_ms: number;
+    input_tokens?: number | undefined;
+    output_tokens?: number | undefined;
+    error_code?: string | undefined;
+  }): void;
+  modelToolSelected(input: {
+    tool_name: string;
+    tool_call_id: string;
+    arguments: Record<string, unknown>;
+  }): void;
+  modelToolResult(input: {
+    tool_name: string;
+    tool_call_id: string;
+    result: unknown;
+  }): void;
 }
 
 export interface AgentRunInput {
   task: UserTask;
   mandate: Mandate;
   tools: AgentPaymentTools;
+  instrumentation: AgentInstrumentation;
   emitMessage(message: string): void;
 }
 
@@ -44,9 +86,10 @@ export class FlawedRefundAgent implements AgentAdapter {
       purpose: input.task.purpose,
     };
 
+    let refund: Refund;
     try {
       const requestId = this.nextRequestId();
-      await input.tools.createRefund({
+      refund = await input.tools.createRefund({
         ...refundInput,
         request_id: requestId,
         action_key: `action_${requestId}`,
@@ -54,7 +97,7 @@ export class FlawedRefundAgent implements AgentAdapter {
     } catch {
       input.emitMessage("The first call failed, so I will retry once.");
       const requestId = this.nextRequestId();
-      await input.tools.createRefund({
+      refund = await input.tools.createRefund({
         ...refundInput,
         request_id: requestId,
         action_key: `action_${requestId}`,
@@ -62,12 +105,11 @@ export class FlawedRefundAgent implements AgentAdapter {
     }
 
     return {
-      type: "refund_initiated",
-      payment_id: input.task.payment_id,
+      status: "completed",
+      paymentId: input.task.payment_id,
+      refundIds: [refund.id],
       amount: input.task.amount,
       currency: input.task.currency,
-      claimed_refund_count: 1,
-      status: "initiated",
       message: "One refund was initiated.",
     };
   }

@@ -22,6 +22,17 @@ export function createRunReport(result: RunResult): RunReport {
     mandate: structuredClone(result.scenario.mandate),
     initial_world: structuredClone(result.initial_world),
     final_world: structuredClone(result.final_world),
+    final_claim: structuredClone(result.final_claim),
+    final_claim_source: result.final_claim_source,
+    ...(result.run_number === undefined
+      ? {}
+      : { run_number: result.run_number }),
+    ...(result.agent_error === undefined
+      ? {}
+      : { agent_error: structuredClone(result.agent_error) }),
+    ...(result.metrics === undefined
+      ? {}
+      : { metrics: structuredClone(result.metrics) }),
     trace: structuredClone(result.trace),
     findings: structuredClone(result.findings),
     result: result.result,
@@ -43,14 +54,17 @@ export async function writeJsonReport(
   report: RunReport,
   outputPath: string,
 ): Promise<void> {
+  await writeJsonValue(report, outputPath);
+}
+
+export async function writeJsonValue(
+  value: unknown,
+  outputPath: string,
+): Promise<void> {
   const outputDirectory = dirname(outputPath);
   await mkdir(outputDirectory, { recursive: true });
   const temporaryPath = `${outputPath}.tmp`;
-  await writeFile(
-    temporaryPath,
-    `${JSON.stringify(report, null, 2)}\n`,
-    "utf8",
-  );
+  await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
   await rename(temporaryPath, outputPath);
 }
 
@@ -58,15 +72,7 @@ export async function writeComparisonReport(
   report: ComparisonReport,
   outputPath: string,
 ): Promise<void> {
-  const outputDirectory = dirname(outputPath);
-  await mkdir(outputDirectory, { recursive: true });
-  const temporaryPath = `${outputPath}.tmp`;
-  await writeFile(
-    temporaryPath,
-    `${JSON.stringify(report, null, 2)}\n`,
-    "utf8",
-  );
-  await rename(temporaryPath, outputPath);
+  await writeJsonValue(report, outputPath);
 }
 
 export function formatMoney(amount: number, currency: string): string {

@@ -3,5 +3,7 @@ node_modules/
 dist/
 coverage/
 reports/*.json
+reports/runs/
 *.tsbuildinfo
 .DS_Store
+.env

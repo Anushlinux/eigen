@@ -8,13 +8,15 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "pnpm --filter @eigen/core build && pnpm --filter @eigen/cli build",
-    "typecheck": "pnpm --filter @eigen/core build && tsc -p packages/core/tsconfig.json --noEmit && tsc -p apps/cli/tsconfig.json --noEmit",
-    "test": "pnpm --filter @eigen/core build && vitest run",
+    "build": "pnpm --filter @eigen/core build && pnpm --filter @eigen/openai-adapter build && pnpm --filter @eigen/cli build",
+    "typecheck": "pnpm --filter @eigen/core build && tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/openai-adapter/tsconfig.json --noEmit && tsc -p apps/cli/tsconfig.json --noEmit",
+    "test": "pnpm --filter @eigen/core build && pnpm --filter @eigen/openai-adapter build && vitest run",
     "lint": "biome check .",
     "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm test",
     "demo": "pnpm build && node apps/cli/dist/demo.js",
-    "compare-demo": "pnpm build && node apps/cli/dist/index.js compare scenarios/refunds --baseline flawed-refund --candidate safe-refund"
+    "compare-demo": "pnpm build && node apps/cli/dist/index.js compare scenarios/refunds --baseline flawed-refund --candidate safe-refund",
+    "eigen": "pnpm build && node --env-file-if-exists=.env apps/cli/dist/index.js",
+    "llm-demo": "pnpm eigen experiment scenarios/refunds --agents openai-refund-v1,openai-refund-v2 --runs 5 --allow-failures"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.2",

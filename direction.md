@@ -622,7 +622,7 @@ Do not add yet:
 - cloud deployment;
 - telemetry vendor SDKs;
 - real Razorpay credentials;
-- OpenAI or another model SDK;
+- model SDKs outside the isolated provider-adapter packages introduced in later stages;
 - generic plugin systems;
 - premature abstractions for every future payment rail.
 
@@ -899,9 +899,11 @@ Do not replace the simulator with only remote test-mode calls.
 
 ---
 
-## 21. Future AI integration
+## 21. AI integration
 
-AI should be introduced only after the deterministic vertical slice works.
+AI is introduced only after the deterministic vertical slice works. Stage 3 adds
+the first real model adapter while deterministic code remains the financial
+authority.
 
 Useful AI roles include:
 
@@ -948,7 +950,14 @@ These stages are directional, not permission to build everything immediately.
 - compare unsafe and safe runs;
 - show regression deltas.
 
-### Stage 3 — more payment failures
+### Stage 3 — real agent experiments
+
+- connect an OpenAI Agents SDK refund agent behind `AgentAdapter`;
+- keep normalized Eigen traces independent of provider traces;
+- compare two prompt profiles across repeated runs;
+- report nondeterministic outcomes without predetermined scores.
+
+### Stage 4 — more payment failures
 
 - duplicate and delayed webhooks;
 - late state changes;
@@ -956,12 +965,6 @@ These stages are directional, not permission to build everything immediately.
 - incorrect resource selection;
 - approval boundaries;
 - poisoned support-ticket content.
-
-### Stage 4 — real agent adapter
-
-- connect an LLM-backed refund agent;
-- keep normalized Eigen traces independent of provider traces;
-- run repeated scenarios to measure nondeterminism.
 
 ### Stage 5 — Razorpay test adapter
 
