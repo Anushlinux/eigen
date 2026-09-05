@@ -13,6 +13,14 @@ services:
         value: 24.19.0
       - key: EIGEN_HOSTED
         value: "true"
+      - key: EIGEN_AUTH_MODE
+        value: github
+      - key: EIGEN_AUTH_SECRET
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_ID
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_SECRET
+        sync: false
       - key: OPENAI_MODEL
         value: gpt-5.6-luna
       - key: EIGEN_TOKEN_KEY

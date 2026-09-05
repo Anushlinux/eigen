@@ -35,7 +35,13 @@ export function AuthBoundary({ children }: { children: ReactNode }) {
           return;
         }
         if (!(await client.hasSession())) {
-          if (active) setState("signed-out");
+          if (active) {
+            setState("signed-out");
+            if (new URLSearchParams(window.location.search).has("signin_error"))
+              setError(
+                "GitHub sign-in did not complete. Try again, or check that your account is invited.",
+              );
+          }
           return;
         }
         if (!active) return;

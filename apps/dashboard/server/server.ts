@@ -7,6 +7,8 @@ import {
   createDefaultDashboardApiDependencies,
 } from "./api.js";
 import { createDashboardAuth, withDashboardAuth } from "./auth.js";
+import { createHostedDashboardAuth } from "./hosted-auth.js";
+import { sendWebResponse } from "./node-response.js";
 import { createPlatformApi, platformJson } from "./platform/api.js";
 import { createPlatformRuntime } from "./platform/runtime.js";
 
@@ -16,7 +18,10 @@ const hosted = process.env.EIGEN_HOSTED === "true";
 const port = Number(
   process.env.PORT ?? process.env.EIGEN_DASHBOARD_PORT ?? "4173",
 );
-const auth = createDashboardAuth(process.env);
+const auth =
+  process.env.EIGEN_AUTH_MODE === "github"
+    ? createHostedDashboardAuth(process.env)
+    : createDashboardAuth(process.env);
 const invited = (process.env.EIGEN_INVITED_USERS ?? "")
   .split(",")
   .map((value) => value.trim().toLowerCase())
@@ -28,7 +33,7 @@ if (
     !invited.length)
 )
   throw new Error(
-    "Hosted Eigen requires Neon Auth, an HTTPS EIGEN_PUBLIC_ORIGIN, and EIGEN_INVITED_USERS.",
+    "Hosted Eigen requires authentication, an HTTPS EIGEN_PUBLIC_ORIGIN, and EIGEN_INVITED_USERS.",
   );
 const platform = await createPlatformRuntime(process.env);
 const platformApi = createPlatformApi(
@@ -142,11 +147,7 @@ const server = createServer(async (request, response) => {
       ? await platformApi(incoming)
       : await api(incoming);
     if (apiResponse) {
-      response.writeHead(
-        apiResponse.status,
-        Object.fromEntries(apiResponse.headers),
-      );
-      response.end(Buffer.from(await apiResponse.arrayBuffer()));
+      await sendWebResponse(response, apiResponse);
       return;
     }
     const pathname = new URL(url).pathname;
@@ -188,6 +189,7 @@ async function shutdown() {
   server.close();
   await dependencies?.externalJobs?.shutdown();
   await platform.close();
+  await auth?.close?.();
   server.closeAllConnections();
 }
 process.once("SIGINT", () => void shutdown());

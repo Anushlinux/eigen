@@ -26,6 +26,7 @@ export async function loadAuthentication() {
   if (config.enabled === false) return undefined;
   if (config.enabled !== true || typeof config.baseUrl !== "string")
     throw new Error("The server returned invalid sign-in settings.");
+  if (config.mode === "github") return loadHostedAuthentication(config.baseUrl);
   const [{ createAuthClient }, { BetterAuthVanillaAdapter }] =
     await Promise.all([
       import("@neondatabase/auth"),
@@ -72,6 +73,61 @@ export async function loadAuthentication() {
     async signOut() {
       const { error } = await client.signOut();
       if (error) throw new Error("Sign-out did not finish. Try again.");
+    },
+  };
+}
+
+async function loadHostedAuthentication(baseUrl: string) {
+  const base = new URL(baseUrl, window.location.origin);
+  if (
+    base.origin !== window.location.origin ||
+    base.pathname !== "/api/auth/login"
+  )
+    throw new Error("Invalid hosted sign-in address.");
+  async function call(path: string, body?: unknown) {
+    const response = await fetch(`${base.href}${path}`, {
+      method: body === undefined ? "GET" : "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      ...(body === undefined
+        ? {}
+        : {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }),
+    });
+    if (!response.ok)
+      throw new Error("Sign-in could not complete. Please try again.");
+    return response.json();
+  }
+  return {
+    async hasSession() {
+      const value = await call("/get-session");
+      return Boolean(value?.session && value?.user);
+    },
+    async token() {
+      const value = await call("/get-session");
+      if (!value?.session?.token || !value.user)
+        throw new Error("Your session expired. Sign in again.");
+      return value.session.token as string;
+    },
+    async signIn() {
+      const value = await call("/sign-in/social", {
+        provider: "github",
+        callbackURL: `${base.origin}/projects`,
+        errorCallbackURL: `${base.origin}/?signin_error=1`,
+        disableRedirect: true,
+      });
+      const target = new URL(value.url);
+      if (
+        target.origin !== "https://github.com" ||
+        target.pathname !== "/login/oauth/authorize"
+      )
+        throw new Error("GitHub returned an invalid sign-in address.");
+      window.location.assign(target.href);
+    },
+    async signOut() {
+      await call("/sign-out", {});
     },
   };
 }

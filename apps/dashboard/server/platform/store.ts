@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import { migrateHostedAuth } from "./hosted-auth-migration.js";
 import {
   collections,
   emptyState,
@@ -59,6 +60,13 @@ export function createPostgresStore(
               `ALTER TABLE ${table(name)} ADD CONSTRAINT ${table(name)}_record CHECK (jsonb_typeof(data) = 'object' AND (data->>'id') IS NOT DISTINCT FROM id AND (data->>'ownerId') IS NOT DISTINCT FROM owner_id)`,
             );
           await tx`INSERT INTO eigen_migrations(version) VALUES (2)`;
+        }
+        if (
+          !(await tx`SELECT version FROM eigen_migrations WHERE version=3`)
+            .length
+        ) {
+          await migrateHostedAuth(tx);
+          await tx`INSERT INTO eigen_migrations(version) VALUES (3)`;
         }
       });
     },

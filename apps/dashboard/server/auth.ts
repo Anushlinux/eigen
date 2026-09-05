@@ -9,6 +9,9 @@ export interface AuthUser {
 
 export interface DashboardAuth {
   baseUrl: string;
+  mode?: "github";
+  handle?(request: Request): Promise<Response | undefined>;
+  close?(): Promise<void>;
   verify(token: string): Promise<AuthUser>;
 }
 
@@ -87,8 +90,16 @@ export function withDashboardAuth(
     const path = new URL(request.url).pathname;
     if (path === "/api/auth/config" && request.method === "GET")
       return json(
-        auth ? { enabled: true, baseUrl: auth.baseUrl } : { enabled: false },
+        auth
+          ? {
+              enabled: true,
+              baseUrl: auth.baseUrl,
+              ...(auth.mode ? { mode: auth.mode } : {}),
+            }
+          : { enabled: false },
       );
+    const authResponse = await auth?.handle?.(request);
+    if (authResponse) return authResponse;
     if (!path.startsWith("/api/")) return api(request);
     if (!auth) return api(request);
     const header = request.headers.get("authorization") ?? "";

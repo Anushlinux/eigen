@@ -6,7 +6,7 @@ if (!url)
 const store = createPostgresStore(url);
 try {
   await store.migrate();
-  process.stdout.write("Eigen platform database migrations 1–2 applied.\n");
+  process.stdout.write("Eigen platform database migrations 1–3 applied.\n");
 } finally {
   await store.close();
 }
