@@ -22,6 +22,8 @@ pnpm eigen external scenarios/refunds --app examples/refund-agent --runs 1
 
 Use the existing ignored `.env` with `OPENAI_API_KEY` and `OPENAI_MODEL`. Do not put secrets in application source, scenario files, or reports. The CLI loads `.env`; it passes only the selected inference configuration and the temporary simulator address/token to the child process. No Razorpay credentials are needed or forwarded.
 
+The bundled external application's Responses requests and Eigen's built-in OpenAI refund agents explicitly use `store: true` so future generated responses can be retained by OpenAI for inspection and retrieval. This changes provider-side storage, not the refund or retry logic. It does not backfill previous requests or alter saved evaluation evidence. Other external applications control their own inference settings.
+
 The run intentionally exits **1** when the application fails a scenario. A result of `BLOCK` is the expected outcome for this unsafe reference, not a successful deployment gate. Invalid configuration exits 2. An all-passing suite exits 0. No command converts an agent error into a pass.
 
 An application copied into another directory can be selected with `--app /absolute/path/to/application`. Build that application's code first. It can be built independently with `npm install` and `npm run build`; Eigen's root build also compiles the bundled example. This milestone does not automatically discover arbitrary repositories or install an adapter for them.
@@ -94,6 +96,20 @@ Offline integration tests run the actual external executable and payment HTTP pa
 
 ## Deferred
 
-No dashboard changes, repair generation, automatic installation, GitHub integration, production monitoring, new payment workflows, or hosted execution. Evaluation-level `INCONCLUSIVE`, broader authority checks, and full report/regression versioning remain later work. Existing regression commands continue to support their existing agents; this milestone does not add external application replay to `eigen regress`.
+Milestone 2 adds read-only dashboard inspection of saved suites. Repair generation, automatic installation, GitHub integration, production monitoring, new payment workflows, and hosted execution remain deferred. Evaluation-level `INCONCLUSIVE`, broader authority checks, and full report/regression versioning remain later work. Existing regression commands continue to support their existing agents; this milestone does not add external application replay to `eigen regress`.
 
 The reference uses the [OpenAI Responses function-calling flow](https://developers.openai.com/api/docs/guides/function-calling): it sends tool results back with their call IDs and retains response items for the next turn. Hidden reasoning is not displayed as evidence.
+
+## Inspect saved evaluations (Milestone 2)
+
+Run `pnpm dashboard` from the repository with the existing `.env`, then open `http://127.0.0.1:4173` and select **External evaluations**. When external history is present this is the initial view. Choose a saved suite, scenario, and trial. The view preserves evaluator verdicts and shows the mandate, new committed refunds, amount beyond authorisation, original claim, and recorded findings. Select a finding or causal step to inspect exact event payloads and linked findings; the full trace is available below.
+
+The read-only API lists external history at `GET /api/reports` and returns a validated suite at `GET /api/reports/external/<suite-id>` (or `latest`). Embedded run reports are read from the suite; recorded `report_path` values are never followed. Missing, malformed, incomplete, and unsupported files are explicit unavailable states. Missing causal links do not produce an invented sequence. Original reports are not changed.
+
+Financial totals use integer minor units, exclude refunds already present before the trial, and keep currencies separate. The UI reports recorded findings rather than re-evaluating correctness. An execution error can block a trial without proving a financial violation. Viewing saved OpenAI evidence makes no new inference or payment calls; the existing guarded smoke launcher remains separate.
+
+## Run and compare from the dashboard (Milestone 3)
+
+The dashboard now launches the configured reference application against six reviewed scenarios. In **External evaluations**, select one to three trials per scenario and choose **Run evaluation**. The job runs in the background and opens its saved evidence after completion. An interrupted job never resumes automatically. The original three-case CLI directory remains available; the expanded suite is `scenarios/external-refunds`.
+
+Guidance links recorded findings to supporting events and developer inspection suggestions. It is not a tested fix. After changing and building their application outside Eigen, developers can run again and select two suites in **Compare → External suites**. Matching evaluation provenance permits comparison of observed trials; historical or mismatched configurations are explicitly not directly comparable. See `docs/milestone-3.md` for job semantics, scenario expectations, provenance, and acceptance evidence.

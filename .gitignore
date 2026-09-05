@@ -7,6 +7,14 @@ reports/*.json
 reports/runs/
 reports/regressions/
 reports/external/
+reports/external-jobs/
 *.tsbuildinfo
 .DS_Store
 .env
+.env.*
+!.env.example
+!.env.*.example
+
+# Machine-local application connection (no secrets).
+eigen.project.json
+.neon

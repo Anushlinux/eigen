@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-04T17:40:35Z",
+  "generatedAt": "2026-09-05T14:01:22.526764Z",
   "title": "Design System: Eigen",
   "extensions": {
     "colorMeta": {
@@ -198,6 +198,66 @@
           "#c9a9ff",
           "#f4edff"
         ]
+      },
+      "workspace-status-neutral": {
+        "role": "neutral",
+        "displayName": "Workspace Neutral Status",
+        "canonical": "#e5e0d0",
+        "tonalRamp": [
+          "oklch(15% 0.0221 92.52)",
+          "oklch(26% 0.0221 92.52)",
+          "oklch(38% 0.0221 92.52)",
+          "oklch(49% 0.0221 92.52)",
+          "oklch(61% 0.0221 92.52)",
+          "oklch(72% 0.0221 92.52)",
+          "oklch(84% 0.0221 92.52)",
+          "oklch(95% 0.0221 92.52)"
+        ]
+      },
+      "workspace-status-success-ink": {
+        "role": "tertiary",
+        "displayName": "Workspace Success Ink",
+        "canonical": "#14512d",
+        "tonalRamp": [
+          "oklch(15% 0.0865 153.15)",
+          "oklch(26% 0.0865 153.15)",
+          "oklch(38% 0.0865 153.15)",
+          "oklch(49% 0.0865 153.15)",
+          "oklch(61% 0.0865 153.15)",
+          "oklch(72% 0.0865 153.15)",
+          "oklch(84% 0.0865 153.15)",
+          "oklch(95% 0.0865 153.15)"
+        ]
+      },
+      "workspace-status-error-ink": {
+        "role": "secondary",
+        "displayName": "Workspace Error Ink",
+        "canonical": "#862714",
+        "tonalRamp": [
+          "oklch(15% 0.1330 33.17)",
+          "oklch(26% 0.1330 33.17)",
+          "oklch(38% 0.1330 33.17)",
+          "oklch(49% 0.1330 33.17)",
+          "oklch(61% 0.1330 33.17)",
+          "oklch(72% 0.1330 33.17)",
+          "oklch(84% 0.1330 33.17)",
+          "oklch(95% 0.1330 33.17)"
+        ]
+      },
+      "workspace-status-working-ink": {
+        "role": "primary",
+        "displayName": "Workspace Working Ink",
+        "canonical": "#133291",
+        "tonalRamp": [
+          "oklch(15% 0.1604 265.00)",
+          "oklch(26% 0.1604 265.00)",
+          "oklch(38% 0.1604 265.00)",
+          "oklch(49% 0.1604 265.00)",
+          "oklch(61% 0.1604 265.00)",
+          "oklch(72% 0.1604 265.00)",
+          "oklch(84% 0.1604 265.00)",
+          "oklch(95% 0.1604 265.00)"
+        ]
       }
     },
     "typographyMeta": {
@@ -216,6 +276,42 @@
       "label": {
         "displayName": "System Label",
         "purpose": "Sequence, identifiers, configuration, and status."
+      },
+      "workspace-page": {
+        "displayName": "Workspace Page",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
+      },
+      "workspace-section": {
+        "displayName": "Workspace Section",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
+      },
+      "workspace-subsection": {
+        "displayName": "Workspace Subsection",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
+      },
+      "workspace-body": {
+        "displayName": "Workspace Body",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
+      },
+      "workspace-control": {
+        "displayName": "Workspace Control",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
+      },
+      "workspace-label": {
+        "displayName": "Workspace Label",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
+      },
+      "workspace-support": {
+        "displayName": "Workspace Support",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
+      },
+      "workspace-status": {
+        "displayName": "Workspace Status",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
+      },
+      "workspace-metadata": {
+        "displayName": "Workspace Metadata",
+        "purpose": "Scoped project-workspace typography; see DESIGN.md Project workspace hierarchy. Existing local-report roles are unchanged."
       }
     },
     "shadows": [],
@@ -232,8 +328,22 @@
       }
     ],
     "breakpoints": [
-      { "name": "compact-desktop", "value": "1100px" },
-      { "name": "evidence-stack", "value": "760px" }
+      {
+        "name": "compact-desktop",
+        "value": "1100px"
+      },
+      {
+        "name": "evidence-stack",
+        "value": "760px"
+      },
+      {
+        "name": "workspace-stack",
+        "value": "850px"
+      },
+      {
+        "name": "workspace-narrow",
+        "value": "520px"
+      }
     ]
   },
   "components": [
@@ -289,11 +399,50 @@
       "description": "The shared boundary where provider side effect and lost response diverge.",
       "html": "<div class=\"ds-fault-seam\"><span>RESPONSE LOST</span></div>",
       "css": ".ds-fault-seam { position: relative; width: 1px; height: 180px; background: #e44a35; } .ds-fault-seam span { position: absolute; top: 50%; left: 0; padding: 5px 8px; color: #faf7eb; background: #e44a35; font: 800 10px/1.2 ui-monospace, monospace; letter-spacing: .08em; white-space: nowrap; text-transform: uppercase; transform: translate(-50%,-50%) rotate(-90deg); }"
+    },
+    {
+      "name": "Workspace Primary Action",
+      "kind": "button",
+      "refersTo": "workspace-button-primary",
+      "description": "Sentence-case project action with a 44px minimum target and visible keyboard focus.",
+      "html": "<button class=\"ds-workspace-primary\">Choose tests and source</button>",
+      "css": ".ds-workspace-primary {display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.65rem 1rem;border:1px solid var(--ink,#101317);background:var(--ink,#101317);color:var(--paper,#faf7eb);border-radius:0;font:650 1rem/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;cursor:pointer;}.ds-workspace-primary:hover:not(:disabled){background:var(--cobalt,#2456ff);color:#fff;}.ds-workspace-primary:focus-visible{outline:3px solid var(--focus,#8a3ffc);outline-offset:3px;}.ds-workspace-primary:disabled{opacity:.55;cursor:not-allowed;}"
+    },
+    {
+      "name": "Workspace Secondary Action",
+      "kind": "button",
+      "refersTo": "workspace-button-secondary",
+      "description": "Sentence-case project action with a 44px minimum target and visible keyboard focus.",
+      "html": "<button class=\"ds-workspace-secondary\">View agent activity</button>",
+      "css": ".ds-workspace-secondary {display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.65rem 1rem;border:1px solid var(--rule-dark,#55564f);background:transparent;color:var(--ink,#101317);border-radius:0;font:650 1rem/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;cursor:pointer;}.ds-workspace-secondary:hover:not(:disabled){background:var(--cobalt-pale,#dfe6ff);}.ds-workspace-secondary:focus-visible{outline:3px solid var(--focus,#8a3ffc);outline-offset:3px;}.ds-workspace-secondary:disabled{opacity:.55;cursor:not-allowed;}"
+    },
+    {
+      "name": "Workspace Field",
+      "kind": "input",
+      "refersTo": "workspace-input",
+      "description": "Explicit sentence-case label and full-width field for test editing.",
+      "html": "<label class=\"ds-workspace-field\">Test name<input value=\"Refund after a lost response\" /></label>",
+      "css": ".ds-workspace-field{display:flex;flex-direction:column;gap:.5rem;color:var(--ink,#101317);font:600 .9rem/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;}.ds-workspace-field input{width:100%;min-height:44px;padding:.8rem;border:1px solid var(--rule,#a7a18f);border-radius:0;background:var(--paper,#faf7eb);color:var(--ink,#101317);font:400 1rem/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;caret-color:var(--cobalt,#2456ff);}.ds-workspace-field input:focus-visible{outline:3px solid var(--focus,#8a3ffc);outline-offset:3px;}"
+    },
+    {
+      "name": "Workspace Tabs",
+      "kind": "nav",
+      "description": "Wrapping sentence-case project links; active state combines a cobalt underline with aria-current.",
+      "html": "<nav class=\"ds-workspace-tabs\" aria-label=\"Project\"><a href=\"#overview\" aria-current=\"page\">Overview</a><a href=\"#tests\">Tests</a><a href=\"#runs\">Runs</a><a href=\"#agent\">Agent activity</a><a href=\"#settings\">Settings</a></nav>",
+      "css": ".ds-workspace-tabs{display:flex;flex-wrap:wrap;gap:.3rem 1.7rem;border-bottom:1px solid var(--rule,#a7a18f);font:600 1rem/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;}.ds-workspace-tabs a{padding:.9rem 0;color:#0000ee;text-decoration:none;border-bottom:3px solid transparent;}.ds-workspace-tabs a[aria-current=\"page\"]{border-bottom-color:var(--cobalt,#2456ff);color:#173fad;}.ds-workspace-tabs a:focus-visible{outline:3px solid var(--focus,#8a3ffc);outline-offset:3px;}@media(max-width:520px){.ds-workspace-tabs{gap:0 1.25rem;}.ds-workspace-tabs a{font-size:.87rem;}}"
+    },
+    {
+      "name": "Workspace Status Labels",
+      "kind": "chip",
+      "refersTo": "workspace-status-success",
+      "description": "Dark readable status ink on pale fills. Integration readiness is distinct from financial evaluation results.",
+      "html": "<div class=\"ds-workspace-statuses\"><span class=\"ds-workspace-status ds-workspace-ready\">Integration: Ready</span><span class=\"ds-workspace-status ds-workspace-error\">Financial tests: Failed</span><span class=\"ds-workspace-status ds-workspace-working\">Running</span></div>",
+      "css": ".ds-workspace-statuses{display:flex;gap:.75rem;flex-wrap:wrap;}.ds-workspace-status{display:inline-flex;padding:.32rem .65rem;background:#e5e0d0;color:var(--ink,#101317);font:700 .82rem/1.45 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif;text-transform:capitalize;white-space:normal;}.ds-workspace-ready{background:var(--green-pale,#dcebdc);color:#14512d;}.ds-workspace-error{background:var(--vermilion-pale,#f7ddd6);color:#862714;}.ds-workspace-working{background:var(--cobalt-pale,#dfe6ff);color:#133291;}"
     }
   ],
   "narrative": {
     "northStar": "The Financial Flight Recorder",
-    "overview": "Eigen looks like an evidence instrument, not an analytics product. Warm paper establishes a calm inspection field; near-black recorder strips hold the event sequence; thin rules make relationships exact without adding decorative weight. The interface is dense, but its hierarchy stays legible because type scale, sequence, and status color each have one job.\n\nThe visual language is forensic and restrained. Large condensed headlines state the conclusion. Monospaced labels expose identifiers, timestamps, and system state. Cobalt marks deliberate safe action, vermilion marks ambiguity or an unsafe financial effect, and green is reserved for deterministically verified success.",
+    "overview": "Eigen looks like an evidence instrument, not an analytics product. Warm paper establishes a calm inspection field; near-black recorder strips hold the event sequence; thin rules make relationships exact without adding decorative weight. The interface is dense, but its hierarchy stays legible because type scale, sequence, and status color each have one job.\n\nThe visual language is forensic and restrained. Large condensed headlines state the conclusion. Monospaced labels expose identifiers, timestamps, and system state. Cobalt marks deliberate safe action, vermilion marks ambiguity or an unsafe financial effect, and green is reserved for deterministically verified success.\n\nThe project workspace extends this incumbent Operate interface with readable forms, ruled project lists, and sentence-case actions. Its scoped variants below apply to repository projects, test editing, and the project run wrapper; existing local-report typography, navigation, recorder lanes, and evidence inspectors retain their established treatment. No new visual world or comp was selected.",
     "keyCharacteristics": [
       "Warm evidence-paper surfaces surrounding near-black recorder lanes.",
       "Square geometry and hairline ledger rules instead of soft cards or floating panels.",
@@ -329,13 +478,23 @@
       },
       {
         "name": "The Flat Evidence Rule",
-        "body": "Surfaces never float above the evidence. A state change is shown through color, rule weight, or selection—not elevation.",
+        "body": "Surfaces never float above the evidence. A state change is shown through color, rule weight, or selection\u2014not elevation.",
         "section": "elevation"
       },
       {
         "name": "The No Soft Card Rule",
         "body": "Do not introduce rounded dashboard cards, pill-shaped status chips, or decorative blobs.",
         "section": "shapes"
+      },
+      {
+        "name": "The Scoped Status Rule",
+        "body": "Always name what a status verifies. \u201cIntegration: Ready\u201d confirms integration readiness; it does not claim that financial tests passed. Show the financial result separately, and retain the visible simulated-payments label.",
+        "section": "colors"
+      },
+      {
+        "name": "The Readable Action Rule",
+        "body": "Project actions and navigation use plain body-family text in sentence case. Preserve uppercase monospaced controls only on the existing local-report surfaces that already use them.",
+        "section": "typography"
       }
     ],
     "dos": [
@@ -343,7 +502,8 @@
       "Do keep money in integer minor units and use tabular formatting for exact totals.",
       "Do preserve event order, correlation identifiers, provider exchange summaries, and linked findings.",
       "Do reserve green for verified success and vermilion for ambiguity, unsafe effects, or blocked decisions.",
-      "Do use a structured mobile stack when aligned desktop lanes no longer fit."
+      "Do use a structured mobile stack when aligned desktop lanes no longer fit.",
+      "Do keep project actions sentence case, selected tabs underlined, and integration readiness separate from financial test results."
     ],
     "donts": [
       "Don't imply that offline tests are a live Razorpay proof.",

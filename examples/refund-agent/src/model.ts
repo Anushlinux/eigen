@@ -1,5 +1,6 @@
 export type ApplicationEvent = { type: string; [key: string]: unknown };
 export type Emit = (event: ApplicationEvent) => void;
+export const MODEL_TIMEOUT_MS = 60_000;
 
 export interface ModelResponse {
   output: Array<Record<string, unknown>>;
@@ -32,7 +33,46 @@ export class ResponsesModel implements AgentModel {
 
   async respond(body: Record<string, unknown>): Promise<ModelResponse> {
     const turn = ++this.turn;
-    this.emit({ type: "model_started", turn });
+    const requestBody: Record<string, unknown> = {
+      ...body,
+      model: this.name,
+      store: true,
+      max_output_tokens: 2500,
+    };
+    const additionalParameters = Object.fromEntries(
+      Object.entries(requestBody).filter(
+        ([key]) =>
+          ![
+            "model",
+            "store",
+            "max_output_tokens",
+            "parallel_tool_calls",
+            "input",
+            "instructions",
+            "tools",
+            "text",
+          ].includes(key),
+      ),
+    );
+    if (requestBody.text && typeof requestBody.text === "object") {
+      const textParameters = Object.fromEntries(
+        Object.entries(requestBody.text).filter(([key]) => key !== "format"),
+      );
+      if (Object.keys(textParameters).length)
+        additionalParameters.text = textParameters;
+    }
+    this.emit({
+      type: "model_started",
+      turn,
+      settings: {
+        settings_version: 1,
+        model: requestBody.model,
+        store: requestBody.store,
+        max_output_tokens: requestBody.max_output_tokens,
+        parallel_tool_calls: requestBody.parallel_tool_calls,
+        additional_parameters: additionalParameters,
+      },
+    });
     const start = this.now();
     try {
       const response = await fetch(`${this.baseUrl}/responses`, {
@@ -41,14 +81,9 @@ export class ResponsesModel implements AgentModel {
           Authorization: `Bearer ${this.apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...body,
-          model: this.name,
-          store: false,
-          max_output_tokens: 2500,
-        }),
+        body: JSON.stringify(requestBody),
         redirect: "error",
-        signal: AbortSignal.timeout(60_000),
+        signal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
       });
       if (!response.ok) throw new Error(`Model HTTP ${response.status}`);
       const result = (await response.json()) as ModelResponse;

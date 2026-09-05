@@ -7,7 +7,9 @@ import {
   type RazorpaySmokePreflight,
 } from "@eigen/razorpay-smoke";
 import { z } from "zod";
+import { createExternalJobManager, ExternalJobError } from "./external-jobs.js";
 import {
+  DashboardReportError,
   type DashboardReportKind,
   listDashboardReports,
   readDashboardReport,
@@ -52,6 +54,7 @@ export interface DashboardApiDependencies {
   nextToken(): string;
   prepare(input: RazorpaySmokeInput): Promise<RazorpaySmokePreflight>;
   execute(input: RazorpaySmokeInput): Promise<RazorpaySmokeExecution>;
+  externalJobs?: ReturnType<typeof createExternalJobManager> | undefined;
 }
 
 export function createDefaultDashboardApiDependencies(
@@ -65,6 +68,7 @@ export function createDefaultDashboardApiDependencies(
     nextToken: () => randomBytes(24).toString("base64url"),
     prepare: (input) => prepareRazorpaySmoke(input),
     execute: (input) => executeRazorpaySmoke(input, { cwd }),
+    externalJobs: createExternalJobManager({ cwd, environment }),
   };
 }
 
@@ -104,6 +108,73 @@ export function createDashboardApi(
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) return undefined;
 
+    if (url.pathname.startsWith("/api/external/")) {
+      const jobs = dependencies.externalJobs;
+      if (!jobs)
+        return json(
+          { error: "External evaluation service is unavailable." },
+          503,
+        );
+      try {
+        await jobs.ready;
+        if (
+          request.method === "GET" &&
+          url.pathname === "/api/external/config"
+        ) {
+          return json({ config: await jobs.getConfig() });
+        }
+        if (request.method === "GET" && url.pathname === "/api/external/jobs") {
+          return json({ jobs: jobs.list() });
+        }
+        if (request.method === "GET") {
+          const match = url.pathname.match(
+            /^\/api\/external\/jobs\/([A-Za-z0-9_-]+)$/,
+          );
+          if (match?.[1]) {
+            const job = jobs.get(match[1]);
+            return job
+              ? json({ job })
+              : json({ error: "Evaluation job not found." }, 404);
+          }
+        }
+        if (
+          request.method === "POST" &&
+          url.pathname === "/api/external/jobs"
+        ) {
+          const rejected = requireSafeWriteRequest(request);
+          if (rejected) return rejected;
+          const input = z
+            .object({
+              suite_id: z.literal("reviewed-refunds-v1"),
+              trials: z.number().int().min(1).max(3),
+              submission_id: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/),
+            })
+            .strict()
+            .parse(await request.json());
+          return json({ job: await jobs.start(input) }, 202);
+        }
+      } catch (error) {
+        if (error instanceof ExternalJobError)
+          return json({ error: error.message, code: error.code }, error.status);
+        if (error instanceof z.ZodError || error instanceof SyntaxError)
+          return json(
+            {
+              error:
+                "Invalid evaluation request. Select a reviewed suite and 1–3 trials.",
+            },
+            400,
+          );
+        return json(
+          {
+            error:
+              "The local evaluation service could not complete the request. Check its job status before retrying.",
+          },
+          503,
+        );
+      }
+      return json({ error: "API route not found." }, 404);
+    }
+
     if (request.method === "GET" && url.pathname === "/api/status") {
       const keyId = dependencies.environment.RAZORPAY_KEY_ID?.trim() ?? "";
       return json({
@@ -125,7 +196,7 @@ export function createDashboardApi(
 
     if (request.method === "GET") {
       const match = url.pathname.match(
-        /^\/api\/reports\/(comparison|smoke)\/([A-Za-z0-9_-]+)$/,
+        /^\/api\/reports\/(comparison|smoke|external)\/([A-Za-z0-9_-]+)$/,
       );
       if (match) {
         const kind = match[1] as DashboardReportKind;
@@ -135,7 +206,13 @@ export function createDashboardApi(
           return json({
             report: await readDashboardReport(dependencies.cwd, kind, id),
           });
-        } catch {
+        } catch (error) {
+          if (kind === "external" && error instanceof DashboardReportError) {
+            return json(
+              { error: error.message, code: error.code },
+              error.status,
+            );
+          }
           return json({ error: "Report not found or invalid." }, 404);
         }
       }

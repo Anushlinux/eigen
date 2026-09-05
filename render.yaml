@@ -1,0 +1,146 @@
+# One web service and one durable queue consumer. Neon is provisioned separately.
+services:
+  - type: web
+    name: eigen-web
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    preDeployCommand: pnpm platform:migrate
+    startCommand: pnpm platform:web
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: EIGEN_HOSTED
+        value: "true"
+      - key: EIGEN_AUTH_MODE
+        value: github
+      - key: EIGEN_AUTH_SECRET
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_ID
+        sync: false
+      - key: GITHUB_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.6-luna
+      - key: EIGEN_TOKEN_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+      - key: NEON_AUTH_BASE_URL
+        sync: false
+      - key: NEON_AUTH_JWKS_URL
+        sync: false
+      - key: EIGEN_PUBLIC_ORIGIN
+        sync: false
+      - key: EIGEN_INVITED_USERS
+        sync: false
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_APP_SLUG
+        sync: false
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_APP_CLIENT_ID
+        sync: false
+      - key: GITHUB_APP_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: E2B_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+  - type: worker
+    name: eigen-worker
+    runtime: node
+    plan: starter
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm platform:worker
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: EIGEN_HOSTED
+        value: "true"
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: DATABASE_URL
+      - key: DATABASE_URL_UNPOOLED
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: DATABASE_URL_UNPOOLED
+      - key: NEON_AUTH_BASE_URL
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: NEON_AUTH_BASE_URL
+      - key: NEON_AUTH_JWKS_URL
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: NEON_AUTH_JWKS_URL
+      - key: EIGEN_PUBLIC_ORIGIN
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: EIGEN_PUBLIC_ORIGIN
+      - key: EIGEN_INVITED_USERS
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: EIGEN_INVITED_USERS
+      - key: GITHUB_APP_ID
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: GITHUB_APP_ID
+      - key: GITHUB_APP_SLUG
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: GITHUB_APP_SLUG
+      - key: GITHUB_APP_PRIVATE_KEY
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: GITHUB_APP_PRIVATE_KEY
+      - key: GITHUB_APP_CLIENT_ID
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: GITHUB_APP_CLIENT_ID
+      - key: GITHUB_APP_CLIENT_SECRET
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: GITHUB_APP_CLIENT_SECRET
+      - key: GITHUB_WEBHOOK_SECRET
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: GITHUB_WEBHOOK_SECRET
+      - key: E2B_API_KEY
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: E2B_API_KEY
+      - key: OPENAI_API_KEY
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: OPENAI_API_KEY
+      - key: EIGEN_TOKEN_KEY
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: EIGEN_TOKEN_KEY
+      - key: OPENAI_MODEL
+        fromService:
+          type: web
+          name: eigen-web
+          envVarKey: OPENAI_MODEL

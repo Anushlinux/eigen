@@ -5,6 +5,12 @@ import { Command, CommanderError } from "commander";
 import { compareCommand } from "./commands/compare.js";
 import { experimentCommand } from "./commands/experiment.js";
 import { externalCommand } from "./commands/external.js";
+import {
+  doctorCommand,
+  evaluateProjectCommand,
+  type InitOptions,
+  initProjectCommand,
+} from "./commands/project.js";
 import { promoteCommand } from "./commands/promote.js";
 import { razorpaySmokeCommand } from "./commands/razorpay-smoke.js";
 import { regressCommand } from "./commands/regress.js";
@@ -39,6 +45,70 @@ export async function main(
   const razorpay = program
     .command("razorpay")
     .description("Manual Razorpay Test Mode operations");
+  program
+    .command("init")
+    .description(
+      "Connect one local application without editing or executing it",
+    )
+    .requiredOption("--app <directory>", "local application directory")
+    .option(
+      "--entrypoint <file>",
+      "compiled JS path relative to the application; defaults to eigen.json",
+    )
+    .option(
+      "--suite-directory <directory>",
+      "copy of the six reviewed refund scenarios",
+    )
+    .option("--model <name>", "OpenAI model; defaults to OPENAI_MODEL")
+    .option("--trials <number>", "default trials per scenario, 1–3", "1")
+    .option(
+      "--timeout-ms <milliseconds>",
+      "maximum process duration per trial",
+      "120000",
+    )
+    .option("--project <directory>", "local project directory", ".")
+    .action(async (flags: InitOptions & { project: string }) => {
+      commandExitCode = await initProjectCommand(
+        resolve(cwd, flags.project),
+        {
+          ...flags,
+          app: resolve(cwd, flags.app),
+          ...(flags.suiteDirectory
+            ? { suiteDirectory: resolve(cwd, flags.suiteDirectory) }
+            : {}),
+        },
+        io,
+      );
+    });
+  program
+    .command("doctor")
+    .description(
+      "Validate setup without executing the application or using inference",
+    )
+    .option("--project <directory>", "local project directory", ".")
+    .option(
+      "--execute",
+      "also run the reviewed suite using live inference and simulated payments",
+    )
+    .action(async (flags: { project: string; execute?: boolean }) => {
+      commandExitCode = await doctorCommand(
+        resolve(cwd, flags.project),
+        io,
+        Boolean(flags.execute),
+      );
+    });
+  program
+    .command("evaluate")
+    .description("Run the configured local application and reviewed suite")
+    .option("--project <directory>", "local project directory", ".")
+    .option("--runs <number>", "override configured trials, 1–3")
+    .action(async (flags: { project: string; runs?: string }) => {
+      commandExitCode = await evaluateProjectCommand(
+        resolve(cwd, flags.project),
+        io,
+        flags.runs,
+      );
+    });
   program
     .command("external")
     .description(

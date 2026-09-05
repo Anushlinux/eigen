@@ -1,14 +1,28 @@
+## Active hosted pilot contract — September 2026
+
+The approved repository → integration agent → PR → tests workflow supersedes earlier local-only milestone restrictions below. The local CLI, report workflow, reviewed scenarios, financial judges, and intentionally flawed baselines remain supported.
+
+Invited JavaScript/TypeScript refund-agent developers sign in with Neon, grant selected-repository access through an Eigen GitHub App, and create an owned project. Repository selection queues integration automatically. The dedicated coding agent runs in E2B; only the trusted Render worker publishes GitHub changes. A runnable integration may still fail financial tests. Passing is evidence about an exact commit and saved tests, never a production deployment claim.
+
+The project workspace contains Overview, Tests, Runs, Agent activity, and Settings. Tests support reviewed templates, versioned custom inputs, and explicitly reviewed AI drafts. A requested repair freezes the failed run's source, test versions, and model. Automatic tracked-branch and same-repository PR evaluations exclude forks. Every coding job has a five-minute deadline, 20 turns, and at most two verification attempts. Financial judgments remain deterministic and payments simulated.
+
+The release gate is the deployed end-to-end acceptance in `docs/hosted-deployment.md`. Source implementation and automated tests do not satisfy that gate alone.
+
+---
+
 # Eigen — Product and Engineering Direction
 
 > **Eigen is a Razorpay-native testing and evaluation system for AI payment agents. It proves whether one authorised human intent results in the correct financial action, no more than once, and whether the agent tells the truth about what happened.**
 
 This document is the implementation contract for the repository. Read it before planning or changing code. When a prompt conflicts with this document, explicitly identify the conflict before proceeding.
 
-### Active milestone — external refund application (September 2026)
+### Active milestone — Milestone 4: connect a local refund application (September 2026)
 
-The agreed next milestone is to run a separate TypeScript/OpenAI reference refund application through its own tool, business rules, retry code, and configurable payment client against Eigen's controlled payment environment. Reuse the existing simulator, fault injector, trace, and deterministic evaluators. Verify normal refund, timeout after execution, and timeout before execution. The intentionally unsafe application's duplicate must remain observable; integration code must not repair it. See `docs/external-agent.md` for the supported contract and evidence boundaries.
+Complete the existing run, inspect, guidance, rerun, compare workflow for a supported developer-owned local application. Add versioned local project configuration shared by the CLI and dashboard, `eigen init`, static `eigen doctor`, and an explicit execution check. Keep one application per local project, the six reviewed refund scenarios, simulated payments, deterministic financial evaluation, and existing saved evidence.
 
-This milestone does not authorise dashboard redesign, generated repairs, production monitoring, GitHub installation, multi-provider expansion, or hosted execution. The longer-term testing-and-repair workflow follows only after this execution path is verified. Existing reference agents and regressions remain intact. Live Razorpay credentials remain forbidden.
+Connect a separate sample repository outside Eigen with a different application implementation. Label it as a second reference integration, not customer adoption. Preserve a baseline version and its reports, inspect a recorded failure, make a developer-authored application change, rebuild, rerun under matching settings, and compare saved outcomes. Eigen must not repair the application or alter its refund policy/retry behavior through the bridge. Preserve the intentionally unsafe original reference.
+
+Acceptance includes independent sample tests, configuration and CLI/dashboard integration tests, offline protocol execution, one bounded before/after live OpenAI comparison using the existing authorised configuration, dashboard verification, complete local setup documentation, and `CI=true pnpm check`. Stop before Milestone 5 release preparation. No production payment operations, hosted execution, automatic repair, or general GitHub application ingestion.
 
 ---
 

@@ -6,13 +6,70 @@ import {
   createDashboardApi,
   createDefaultDashboardApiDependencies,
 } from "./api.js";
+import { createDashboardAuth, withDashboardAuth } from "./auth.js";
+import { createHostedDashboardAuth } from "./hosted-auth.js";
+import { sendWebResponse } from "./node-response.js";
+import { createPlatformApi, platformJson } from "./platform/api.js";
+import { createPlatformRuntime } from "./platform/runtime.js";
 
 const repoRoot = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
 const clientRoot = resolve(repoRoot, "apps/dashboard/dist/client");
-const port = Number(process.env.EIGEN_DASHBOARD_PORT ?? "4173");
-const api = createDashboardApi(
-  createDefaultDashboardApiDependencies(repoRoot, process.env),
+const hosted = process.env.EIGEN_HOSTED === "true";
+const port = Number(
+  process.env.PORT ?? process.env.EIGEN_DASHBOARD_PORT ?? "4173",
 );
+const auth =
+  process.env.EIGEN_AUTH_MODE === "github"
+    ? createHostedDashboardAuth(process.env)
+    : createDashboardAuth(process.env);
+const invited = (process.env.EIGEN_INVITED_USERS ?? "")
+  .split(",")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+if (
+  hosted &&
+  (!auth ||
+    !process.env.EIGEN_PUBLIC_ORIGIN?.startsWith("https://") ||
+    !invited.length)
+)
+  throw new Error(
+    "Hosted Eigen requires authentication, an HTTPS EIGEN_PUBLIC_ORIGIN, and EIGEN_INVITED_USERS.",
+  );
+const platform = await createPlatformRuntime(process.env);
+const platformApi = createPlatformApi(
+  platform.service,
+  platform.setup,
+  platform.origin,
+);
+const dependencies = hosted
+  ? undefined
+  : createDefaultDashboardApiDependencies(
+      resolve(process.env.EIGEN_PROJECT_DIR ?? repoRoot),
+      process.env,
+    );
+await dependencies?.externalJobs?.ready;
+const localApi = dependencies ? createDashboardApi(dependencies) : undefined;
+const api = withDashboardAuth(async (request, user) => {
+  if (!new URL(request.url).pathname.startsWith("/api/")) return undefined;
+  if (
+    hosted &&
+    (!user ||
+      (!invited.includes(user.id.toLowerCase()) &&
+        !(
+          user.emailVerified &&
+          invited.includes(user.email?.toLowerCase() ?? "")
+        )))
+  )
+    return platformJson(
+      { error: "This hosted pilot is invitation-only." },
+      403,
+    );
+  const result = await platformApi(request, user);
+  if (result) return result;
+  if (hosted && new URL(request.url).pathname.startsWith("/api/"))
+    return platformJson({ error: "Route not found." }, 404);
+  return localApi?.(request);
+}, auth);
 
 const contentTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
@@ -24,29 +81,73 @@ const contentTypes: Record<string, string> = {
 
 const server = createServer(async (request, response) => {
   try {
+    if (request.url === "/health" && request.method === "GET") {
+      response.writeHead(platform.service ? 200 : 503, {
+        "Content-Type": "application/json",
+      });
+      response.end(
+        JSON.stringify({
+          status: platform.service ? "ready" : "setup_required",
+        }),
+      );
+      return;
+    }
     const host = request.headers.host ?? "";
     const hostname = host.split(":")[0];
-    if (hostname !== "127.0.0.1" && hostname !== "localhost") {
+    if (
+      hosted
+        ? host !== new URL(platform.origin).host
+        : hostname !== "127.0.0.1" && hostname !== "localhost"
+    ) {
       response.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
-      response.end("Eigen dashboard is available only on this computer.");
+      response.end(
+        hosted
+          ? "Unexpected request host."
+          : "Eigen dashboard is available only on this computer.",
+      );
       return;
     }
     const bodyChunks: Buffer[] = [];
-    for await (const chunk of request) bodyChunks.push(Buffer.from(chunk));
-    const url = `http://${host}${request.url ?? "/"}`;
-    const apiResponse = await api(
-      new Request(url, {
-        method: request.method ?? "GET",
-        headers: request.headers as HeadersInit,
-        ...(bodyChunks.length > 0 ? { body: Buffer.concat(bodyChunks) } : {}),
-      }),
-    );
-    if (apiResponse) {
-      response.writeHead(
-        apiResponse.status,
-        Object.fromEntries(apiResponse.headers),
+    let bodySize = 0;
+    for await (const chunk of request) {
+      bodySize += chunk.length;
+      if (bodySize > 1_000_000) {
+        response.writeHead(413);
+        response.end("Request too large.");
+        return;
+      }
+      bodyChunks.push(Buffer.from(chunk));
+    }
+    const url = `${hosted ? platform.origin : `http://${host}`}${request.url ?? "/"}`;
+    const incoming = new Request(url, {
+      method: request.method ?? "GET",
+      headers: request.headers as HeadersInit,
+      ...(bodyChunks.length > 0 ? { body: Buffer.concat(bodyChunks) } : {}),
+    });
+    const route = new URL(url).pathname;
+    if (route === "/health") {
+      response.writeHead(platform.service ? 200 : 503, {
+        "Content-Type": "application/json",
+      });
+      response.end(
+        JSON.stringify({
+          status: platform.service ? "ready" : "setup_required",
+        }),
       );
-      response.end(Buffer.from(await apiResponse.arrayBuffer()));
+      return;
+    }
+    if (route === "/github/setup") {
+      response.writeHead(303, { Location: `${platform.origin}/projects/new` });
+      response.end();
+      return;
+    }
+    const publicCallback =
+      route === "/api/github/callback" || route === "/api/github/webhook";
+    const apiResponse = publicCallback
+      ? await platformApi(incoming)
+      : await api(incoming);
+    if (apiResponse) {
+      await sendWebResponse(response, apiResponse);
       return;
     }
     const pathname = new URL(url).pathname;
@@ -77,6 +178,19 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, "127.0.0.1", () => {
+server.listen(port, hosted ? "0.0.0.0" : "127.0.0.1", () => {
   process.stdout.write(`Eigen dashboard: http://127.0.0.1:${port}\n`);
 });
+
+let closing = false;
+async function shutdown() {
+  if (closing) return;
+  closing = true;
+  server.close();
+  await dependencies?.externalJobs?.shutdown();
+  await platform.close();
+  await auth?.close?.();
+  server.closeAllConnections();
+}
+process.once("SIGINT", () => void shutdown());
+process.once("SIGTERM", () => void shutdown());

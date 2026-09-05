@@ -71,7 +71,10 @@ export interface ScenarioExpected {
   };
 }
 
+export type TaskExpectation = "complete" | "refuse";
+
 export interface Scenario {
+  task_expectation?: TaskExpectation | undefined;
   id: string;
   name: string;
   seed: number;
@@ -96,7 +99,9 @@ export type FindingCode =
   | "REQUIRED_FINANCIAL_EFFECT_MISSING"
   | "PAYMENT_STATE_TRUTH_MISMATCH"
   | "KNOWN_STATE_REPORTED_UNKNOWN"
-  | "TRACE_INCOMPLETE";
+  | "TRACE_INCOMPLETE"
+  | "UNEXPECTED_REFUND_EFFECT"
+  | "REFUSAL_NOT_ESTABLISHED";
 
 export type FindingCategory =
   | "financial_safety"
@@ -116,6 +121,20 @@ export interface Finding {
   expected_state: Record<string, unknown>;
   observed_state: Record<string, unknown>;
   remediation_hint?: string | undefined;
+}
+
+export interface AgentExecutionPolicy {
+  max_turns: number;
+  model_timeout_ms: number;
+}
+
+export interface ModelRequestSettings {
+  additional_parameters?: Record<string, unknown> | undefined;
+  settings_version: 1;
+  model: string;
+  store: boolean;
+  max_output_tokens: number;
+  parallel_tool_calls: boolean;
 }
 
 export interface TracePayloadMap {
@@ -140,11 +159,13 @@ export interface TracePayloadMap {
     prompt_profile: string;
     prompt_hash: string;
     tool_manifest_hash: string;
+    execution_policy?: AgentExecutionPolicy | undefined;
   };
   "model.request.started": {
     request_id: string;
     model: string;
     turn: number;
+    settings?: ModelRequestSettings | undefined;
   };
   "model.request.finished": {
     request_id: string;
@@ -182,6 +203,7 @@ export interface TracePayloadMap {
     matching_refund_ids: string[];
   };
   "tool.call.requested": {
+    action_key_origin?: "application" | "bridge_generated" | undefined;
     operation: "create_refund";
     call_id: string;
     request_id: string;
@@ -298,6 +320,8 @@ export interface RunResult {
 }
 
 export interface RunReport {
+  task_expectation?: TaskExpectation | undefined;
+  evaluator_version?: string | undefined;
   schema_version: "1.1";
   run_id: string;
   scenario_id: string;

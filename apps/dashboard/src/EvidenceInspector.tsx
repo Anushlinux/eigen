@@ -6,6 +6,7 @@ interface EvidenceInspectorProps {
   findings: Finding[];
   httpSummary?: unknown | undefined;
   comparisonNote?: string | undefined;
+  eventTitle?: string | undefined;
 }
 
 export function EvidenceInspector({
@@ -13,6 +14,7 @@ export function EvidenceInspector({
   findings,
   httpSummary,
   comparisonNote,
+  eventTitle,
 }: EvidenceInspectorProps) {
   const linkedFindings = event
     ? findings.filter((finding) =>
@@ -24,7 +26,7 @@ export function EvidenceInspector({
     <section className="evidence-inspector" aria-labelledby="evidence-heading">
       <div className="inspector-summary">
         <h2 id="evidence-heading">
-          {event ? eventLabel(event) : "Select evidence"}
+          {event ? (eventTitle ?? eventLabel(event)) : "Select evidence"}
         </h2>
         <p>
           {comparisonNote ??

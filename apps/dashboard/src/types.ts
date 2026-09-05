@@ -3,7 +3,7 @@ export interface TraceEvent {
   sequence: number;
   timestamp: string;
   type: string;
-  correlation_id?: string;
+  correlation_id?: string | undefined;
   payload: Record<string, unknown>;
 }
 
@@ -143,12 +143,19 @@ export interface SmokePreflight {
 }
 
 export interface ReportSummary {
-  kind: "comparison" | "smoke";
+  kind: "comparison" | "smoke" | "external";
   id: string;
   created_at: string | null;
-  decision: "allow" | "block";
+  decision: "allow" | "block" | null;
   subject: string;
   schema_version: string;
+  availability?:
+    | "ready"
+    | "malformed"
+    | "incomplete"
+    | "unsupported"
+    | "missing";
+  message?: string;
 }
 
 export interface DashboardStatus {

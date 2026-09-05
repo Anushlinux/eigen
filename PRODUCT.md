@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-React and Vite for the dashboard client, with a small local Node.js server for report access and guarded Razorpay Test Mode operations.
+React and Vite for the dashboard client, Node.js for authenticated project APIs and a separate Render worker, Neon for authentication and durable project records, and E2B for isolated repository execution. The local CLI and report server remain supported.
 
 ## Users
 
@@ -24,7 +24,7 @@ Razorpay proves that payment APIs work. Eigen proves that the complete agent-plu
 
 ## Operating Context
 
-Developers use Eigen locally through its CLI and dashboard. The deterministic `PaymentWorld` remains the reproducible test environment. Selected manual smoke runs can use a captured Razorpay Test Mode payment and the `openai-refund-v3` agent. JSON reports under `reports/` are immutable evidence inputs for the dashboard.
+Invited developers use repository-backed projects through the hosted dashboard. GitHub App access is separate from Neon sign-in. Integration and repair changes arrive as reviewable PRs; evaluations identify their exact source commit. Developers can also use Eigen locally through its CLI and dashboard. The deterministic `PaymentWorld` remains the reproducible test environment. Selected manual smoke runs can use a captured Razorpay Test Mode payment and the `openai-refund-v3` agent. JSON reports under `reports/` are immutable evidence inputs for the dashboard.
 
 ## Capabilities and Constraints
 
@@ -34,7 +34,7 @@ Developers use Eigen locally through its CLI and dashboard. The deterministic `P
 - Razorpay integration is Test Mode only. Live credentials are rejected.
 - The dashboard may initiate a guarded Test Mode smoke run, but credentials remain server-side and every write requires preflight plus typed confirmation.
 - Automated tests never make Razorpay or OpenAI network requests.
-- Eigen is not a production payment processor, hosted monitoring service, or generic agent observability dashboard.
+- Eigen is not a production payment processor, customer production deployment service, or generic agent observability dashboard.
 
 ## Brand Commitments
 

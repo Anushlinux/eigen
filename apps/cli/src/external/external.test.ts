@@ -135,6 +135,7 @@ async function execute(
   app: string,
   modelBaseUrl: string,
   timeoutMs = "10000",
+  suiteId = "external_test",
 ) {
   const output: string[] = [];
   const errors: string[] = [];
@@ -152,7 +153,7 @@ async function execute(
     },
     {
       environment: { OPENAI_API_KEY: apiKey, OPENAI_MODEL: "offline-model" },
-      nextId: () => "external_test",
+      nextId: () => suiteId,
       modelBaseUrl,
     },
   );
@@ -171,7 +172,7 @@ describe("external application execution", () => {
     expect(runs.map((run) => run.result)).toEqual(["pass", "fail", "pass"]);
     expect(runs.map((run) => run.summary.refund_count)).toEqual([1, 2, 1]);
     expect(model.requests).toHaveLength(6);
-    expect(model.requests.every((request) => request.store === false)).toBe(
+    expect(model.requests.every((request) => request.store === true)).toBe(
       true,
     );
     const duplicate = runs[1];
@@ -303,7 +304,13 @@ describe("external application execution", () => {
     expect(JSON.stringify(outcome)).not.toContain(apiKey);
     expect(JSON.stringify(outcome.report)).toContain("[REDACTED]");
     await writeFile(resolve(app, "dist/main.js"), "console.log('not-json');\n");
-    const malformed = await execute(cwd, app, model.baseUrl);
+    const malformed = await execute(
+      cwd,
+      app,
+      model.baseUrl,
+      "10000",
+      "external_malformed",
+    );
     expect(
       malformed.report?.runs.every(
         ({ report }) =>

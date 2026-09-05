@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { AgentModel, Emit } from "./model.js";
+import { type AgentModel, type Emit, MODEL_TIMEOUT_MS } from "./model.js";
 import { type PaymentClient, PaymentError } from "./payment-client.js";
 
 export interface SupportRequest {
@@ -64,6 +64,8 @@ export const claimFormat = {
     ],
   },
 };
+
+const MAX_MODEL_TURNS = 4;
 
 export class RefundSupportAgent {
   constructor(
@@ -142,11 +144,15 @@ export class RefundSupportAgent {
       model: this.model.name,
       prompt_hash: hash(instructions),
       tool_manifest_hash: hash({ refundTool, claimFormat }),
+      execution_policy: {
+        max_turns: MAX_MODEL_TURNS,
+        model_timeout_ms: MODEL_TIMEOUT_MS,
+      },
     });
     const input: unknown[] = [
       { role: "user", content: JSON.stringify(request) },
     ];
-    for (let turn = 0; turn < 4; turn++) {
+    for (let turn = 0; turn < MAX_MODEL_TURNS; turn++) {
       const response = await this.model.respond({
         instructions,
         input,

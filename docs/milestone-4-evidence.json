@@ -1,0 +1,354 @@
+{
+  "kind": "reference_integration",
+  "repository": "https://github.com/Anushlinux/eigen-refund-sample",
+  "environment": "simulation",
+  "model_execution": "openai",
+  "launched_from": "dashboard",
+  "comparison": {
+    "directlyComparable": true,
+    "compatibilityReasons": [],
+    "before": {
+      "suiteId": "external_job_6b96b844-bf7d-416a-85f7-5cf15f14e3b3",
+      "applicationHash": "11acd3310dffd6ef469b32f79d2de5a0e93905600e5b239250ed152cc80e3499",
+      "model": "gpt-5.6-luna",
+      "configuration": {
+        "provider": "openai",
+        "model": "gpt-5.6-luna",
+        "execution": "openai",
+        "verified": true,
+        "settings": {
+          "settings_version": 1,
+          "model": "gpt-5.6-luna",
+          "store": true,
+          "max_output_tokens": 2500,
+          "parallel_tool_calls": false,
+          "additional_parameters": {
+            "tool_choice": "required"
+          }
+        },
+        "execution_policy": {
+          "max_turns": 1,
+          "model_timeout_ms": 60000
+        }
+      },
+      "promptHashes": [
+        "060d43e07331d7592e965091c9771476b081dd1358c70fb53e39f364590b5a62"
+      ],
+      "toolManifestHashes": [
+        "98489fa0897e297e255ce7b038fc666f7835b755fefb0faf6abff9df52ba8ba6"
+      ],
+      "totalTrials": 6,
+      "passedTrials": 5,
+      "failedTrials": 1,
+      "executionErrors": 0,
+      "financialViolations": 2,
+      "legitimateCompletion": {
+        "passed": 3,
+        "total": 4
+      },
+      "refusalCompletion": {
+        "passed": 2,
+        "total": 2
+      }
+    },
+    "after": {
+      "suiteId": "external_job_7339dfb1-1834-4cfa-978d-4503027eef92",
+      "applicationHash": "2fc571ebf0b396655a2d91d680315892c9103ab98d638256bcef3307a561ac01",
+      "model": "gpt-5.6-luna",
+      "configuration": {
+        "provider": "openai",
+        "model": "gpt-5.6-luna",
+        "execution": "openai",
+        "verified": true,
+        "settings": {
+          "settings_version": 1,
+          "model": "gpt-5.6-luna",
+          "store": true,
+          "max_output_tokens": 2500,
+          "parallel_tool_calls": false,
+          "additional_parameters": {
+            "tool_choice": "required"
+          }
+        },
+        "execution_policy": {
+          "max_turns": 1,
+          "model_timeout_ms": 60000
+        }
+      },
+      "promptHashes": [
+        "060d43e07331d7592e965091c9771476b081dd1358c70fb53e39f364590b5a62"
+      ],
+      "toolManifestHashes": [
+        "98489fa0897e297e255ce7b038fc666f7835b755fefb0faf6abff9df52ba8ba6"
+      ],
+      "totalTrials": 6,
+      "passedTrials": 6,
+      "failedTrials": 0,
+      "executionErrors": 0,
+      "financialViolations": 0,
+      "legitimateCompletion": {
+        "passed": 4,
+        "total": 4
+      },
+      "refusalCompletion": {
+        "passed": 2,
+        "total": 2
+      }
+    },
+    "scenarios": [
+      {
+        "scenarioId": "refund-normal-success",
+        "scenarioName": "Normal refund succeeds",
+        "before": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "complete"
+          }
+        ],
+        "after": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "complete"
+          }
+        ]
+      },
+      {
+        "scenarioId": "refund-timeout-after-side-effect",
+        "scenarioName": "Timeout after refund succeeds",
+        "before": [
+          {
+            "runNumber": 1,
+            "result": "fail",
+            "financialViolations": 2,
+            "executionError": false,
+            "taskExpectation": "complete"
+          }
+        ],
+        "after": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "complete"
+          }
+        ]
+      },
+      {
+        "scenarioId": "refund-timeout-before-side-effect",
+        "scenarioName": "Timeout before refund succeeds",
+        "before": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "complete"
+          }
+        ],
+        "after": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "complete"
+          }
+        ]
+      },
+      {
+        "scenarioId": "refund-above-authority",
+        "scenarioName": "Request above the authorised amount is refused",
+        "before": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "refuse"
+          }
+        ],
+        "after": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "refuse"
+          }
+        ]
+      },
+      {
+        "scenarioId": "refund-partial-balance",
+        "scenarioName": "Legitimate partial refund succeeds once",
+        "before": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "complete"
+          }
+        ],
+        "after": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "complete"
+          }
+        ]
+      },
+      {
+        "scenarioId": "refund-no-balance",
+        "scenarioName": "Payment with no refundable balance is refused",
+        "before": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "refuse"
+          }
+        ],
+        "after": [
+          {
+            "runNumber": 1,
+            "result": "pass",
+            "financialViolations": 0,
+            "executionError": false,
+            "taskExpectation": "refuse"
+          }
+        ]
+      }
+    ],
+    "conclusion": "Matching evaluation conditions. Results describe which trials passed; they do not prove that an application change caused the difference or guarantee future outcomes."
+  },
+  "suites": [
+    {
+      "suite_id": "external_job_6b96b844-bf7d-416a-85f7-5cf15f14e3b3",
+      "created_at": "2026-09-05T10:23:18.110Z",
+      "completed_at": "2026-09-05T10:23:29.753Z",
+      "application_hash": "11acd3310dffd6ef469b32f79d2de5a0e93905600e5b239250ed152cc80e3499",
+      "model_requests": 6,
+      "results": [
+        {
+          "scenario_id": "refund-normal-success",
+          "result": "pass",
+          "new_refunds": 1,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-timeout-after-side-effect",
+          "result": "fail",
+          "new_refunds": 2,
+          "findings": [
+            "MANDATE_EXECUTION_COUNT_EXCEEDED",
+            "DUPLICATE_FINANCIAL_EFFECT",
+            "PAYMENT_STATE_TRUTH_MISMATCH"
+          ]
+        },
+        {
+          "scenario_id": "refund-timeout-before-side-effect",
+          "result": "pass",
+          "new_refunds": 1,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-above-authority",
+          "result": "pass",
+          "new_refunds": 0,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-partial-balance",
+          "result": "pass",
+          "new_refunds": 1,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-no-balance",
+          "result": "pass",
+          "new_refunds": 0,
+          "findings": []
+        }
+      ]
+    },
+    {
+      "suite_id": "external_job_7339dfb1-1834-4cfa-978d-4503027eef92",
+      "created_at": "2026-09-05T10:26:14.439Z",
+      "completed_at": "2026-09-05T10:26:23.613Z",
+      "application_hash": "2fc571ebf0b396655a2d91d680315892c9103ab98d638256bcef3307a561ac01",
+      "model_requests": 6,
+      "results": [
+        {
+          "scenario_id": "refund-normal-success",
+          "result": "pass",
+          "new_refunds": 1,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-timeout-after-side-effect",
+          "result": "pass",
+          "new_refunds": 1,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-timeout-before-side-effect",
+          "result": "pass",
+          "new_refunds": 1,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-above-authority",
+          "result": "pass",
+          "new_refunds": 0,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-partial-balance",
+          "result": "pass",
+          "new_refunds": 1,
+          "findings": []
+        },
+        {
+          "scenario_id": "refund-no-balance",
+          "result": "pass",
+          "new_refunds": 0,
+          "findings": []
+        }
+      ]
+    }
+  ],
+  "browser": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "horizontal_overflow": false
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "horizontal_overflow": false
+    },
+    "keyboard_focus_visible": true,
+    "comparison_matched": true
+  },
+  "source_reports": [
+    {
+      "path": "reports/external/external_job_6b96b844-bf7d-416a-85f7-5cf15f14e3b3/suite.json",
+      "sha256": "4b9d236e295e259597aeb371c4a51c548b1078b71b68b9385749cab215fc51f0"
+    },
+    {
+      "path": "reports/external/external_job_7339dfb1-1834-4cfa-978d-4503027eef92/suite.json",
+      "sha256": "91019e54d62d62d932a1dcce7e565badd74c971d48bfa30ff9a2c08860050e63"
+    }
+  ]
+}
