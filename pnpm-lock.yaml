@@ -47,6 +47,9 @@ importers:
       yaml:
         specifier: ^2.8.1
         version: 2.9.0
+      zod:
+        specifier: ^4.1.5
+        version: 4.5.4
 
   apps/dashboard:
     dependencies:

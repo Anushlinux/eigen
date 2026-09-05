@@ -104,7 +104,37 @@ export async function runProviderScenario(
 
   const tools: AgentPaymentTools = {
     async fetchPayment(agentInput): Promise<Payment> {
-      return world.fetchPayment({ payment_id: agentInput.payment_id });
+      const callId = ids.next("read");
+      trace.append(
+        "payment.read.requested",
+        { payment_id: agentInput.payment_id, call_id: callId },
+        callId,
+      );
+      try {
+        const payment = await world.fetchPayment({
+          payment_id: agentInput.payment_id,
+        });
+        trace.append(
+          "payment.read.returned",
+          { payment: structuredClone(payment), call_id: callId },
+          callId,
+        );
+        return payment;
+      } catch (error) {
+        trace.append(
+          "payment.read.failed",
+          {
+            payment_id: agentInput.payment_id,
+            call_id: callId,
+            error_code:
+              error instanceof PaymentProviderError
+                ? error.code
+                : "PAYMENT_READ_FAILED",
+          },
+          callId,
+        );
+        throw error;
+      }
     },
     async createRefund(agentInput: AgentCreateRefundInput): Promise<Refund> {
       const callId = ids.next("call");

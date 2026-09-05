@@ -4,6 +4,12 @@
 
 This document is the implementation contract for the repository. Read it before planning or changing code. When a prompt conflicts with this document, explicitly identify the conflict before proceeding.
 
+### Active milestone — external refund application (September 2026)
+
+The agreed next milestone is to run a separate TypeScript/OpenAI reference refund application through its own tool, business rules, retry code, and configurable payment client against Eigen's controlled payment environment. Reuse the existing simulator, fault injector, trace, and deterministic evaluators. Verify normal refund, timeout after execution, and timeout before execution. The intentionally unsafe application's duplicate must remain observable; integration code must not repair it. See `docs/external-agent.md` for the supported contract and evidence boundaries.
+
+This milestone does not authorise dashboard redesign, generated repairs, production monitoring, GitHub installation, multi-provider expansion, or hosted execution. The longer-term testing-and-repair workflow follows only after this execution path is verified. Existing reference agents and regressions remain intact. Live Razorpay credentials remain forbidden.
+
 ---
 
 ## 1. Product thesis

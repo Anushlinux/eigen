@@ -51,6 +51,35 @@ const scenario: Scenario = {
 };
 
 describe("complete deterministic run", () => {
+  it("records payment reads independently of later application mutation and retains read failures", async () => {
+    const agent: AgentAdapter = {
+      id: "read-evidence-test",
+      async run(input) {
+        const payment = await input.tools.fetchPayment({
+          payment_id: input.task.payment_id,
+        });
+        payment.refunded_amount = 123;
+        await expect(
+          input.tools.fetchPayment({ payment_id: "missing-payment" }),
+        ).rejects.toThrow();
+        return new SafeRefundAgent().run(input);
+      },
+    };
+    const result = await runScenario({
+      scenario: { ...scenario, faults: [] },
+      agent,
+    });
+    expect(result.result).toBe("pass");
+    const firstRead = result.trace.find(
+      (event) => event.type === "payment.read.returned",
+    );
+    expect(firstRead?.payload.payment.refunded_amount).toBe(0);
+    const failedRead = result.trace.find(
+      (event) => event.type === "payment.read.failed",
+    );
+    expect(failedRead?.payload.error_code).toBe("PAYMENT_NOT_FOUND");
+    expect(failedRead?.correlation_id).toBe(failedRead?.payload.call_id);
+  });
   it("detects the duplicate refund and retains complete evidence", async () => {
     const result = await runScenario({
       scenario,

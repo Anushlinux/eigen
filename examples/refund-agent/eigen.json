@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "external-refund-reference",
+  "entrypoint": "dist/main.js",
+  "sourceFiles": [
+    "package.json",
+    "tsconfig.json",
+    "src/main.ts",
+    "src/agent.ts",
+    "src/model.ts",
+    "src/payment-client.ts"
+  ]
+}

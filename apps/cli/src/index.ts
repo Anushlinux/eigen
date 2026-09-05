@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Command, CommanderError } from "commander";
 import { compareCommand } from "./commands/compare.js";
 import { experimentCommand } from "./commands/experiment.js";
+import { externalCommand } from "./commands/external.js";
 import { promoteCommand } from "./commands/promote.js";
 import { razorpaySmokeCommand } from "./commands/razorpay-smoke.js";
 import { regressCommand } from "./commands/regress.js";
@@ -38,6 +39,38 @@ export async function main(
   const razorpay = program
     .command("razorpay")
     .description("Manual Razorpay Test Mode operations");
+  program
+    .command("external")
+    .description(
+      "Run a local external refund application against simulated payments",
+    )
+    .argument("<scenario-directory>", "directory containing refund scenarios")
+    .requiredOption(
+      "--app <directory>",
+      "application directory containing eigen.json",
+    )
+    .option("--runs <number>", "trials per scenario, from 1 to 5", "1")
+    .option(
+      "--timeout-ms <milliseconds>",
+      "maximum duration of each application process",
+      "120000",
+    )
+    .action(
+      async (
+        scenarioDirectory: string,
+        flags: { app: string; runs: string; timeoutMs: string },
+      ) => {
+        const outcome = await externalCommand({
+          cwd,
+          scenarioDirectory,
+          appDirectory: flags.app,
+          runs: flags.runs,
+          timeoutMs: flags.timeoutMs,
+          io,
+        });
+        commandExitCode = outcome.exitCode;
+      },
+    );
   razorpay
     .command("smoke")
     .description("Create and verify one Razorpay Test Mode partial refund")

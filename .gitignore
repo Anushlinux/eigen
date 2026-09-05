@@ -6,6 +6,7 @@ coverage/
 reports/*.json
 reports/runs/
 reports/regressions/
+reports/external/
 *.tsbuildinfo
 .DS_Store
 .env

@@ -119,6 +119,13 @@ export interface Finding {
 }
 
 export interface TracePayloadMap {
+  "payment.read.requested": { payment_id: string; call_id: string };
+  "payment.read.returned": { payment: Payment; call_id: string };
+  "payment.read.failed": {
+    payment_id: string;
+    call_id: string;
+    error_code: string;
+  };
   "scenario.started": {
     scenario_id: string;
     seed: number;
