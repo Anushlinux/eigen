@@ -4,8 +4,9 @@ import {
   FlawedRefundAgent,
   SafeRefundAgent,
 } from "../agents/index.js";
-import type { Scenario } from "../domain/index.js";
-import { runScenario } from "./index.js";
+import type { Refund, Scenario } from "../domain/index.js";
+import { AmbiguousResultError } from "../payment-world/index.js";
+import { runProviderScenario, runScenario } from "./index.js";
 
 const scenario: Scenario = {
   id: "refund-timeout-duplicate",
@@ -206,5 +207,57 @@ describe("complete deterministic run", () => {
       agent: new FlawedRefundAgent(),
     });
     expect(second).toEqual(first);
+  });
+
+  it("records a refund first discovered during reconciliation after a real ambiguous write", async () => {
+    const payment = scenario.initial_world.payments[0];
+    if (!payment) throw new Error("Test scenario payment is missing");
+    const refunds: Refund[] = [];
+    let createCalls = 0;
+    const result = await runProviderScenario({
+      scenario: { ...scenario, faults: [], agent: { adapter: "safe-refund" } },
+      agent: new SafeRefundAgent(),
+      initial_world: { payments: [payment], refunds: [] },
+      createProvider({ clock }) {
+        return {
+          provider: {
+            async fetchPayment() {
+              return payment;
+            },
+            async createRefund(input) {
+              createCalls += 1;
+              refunds.push({
+                id: "rfnd_remote_1",
+                payment_id: input.payment_id,
+                amount: input.amount,
+                currency: input.currency,
+                status: "processed",
+                request_id: input.request_id,
+                action_key: input.action_key,
+                mandate_id: input.mandate.id,
+                purpose: input.purpose,
+                semantic_fingerprint: input.action_key,
+                created_at: clock.now(),
+              });
+              throw new AmbiguousResultError();
+            },
+            async fetchRefundsForPayment() {
+              return structuredClone(refunds);
+            },
+          },
+          snapshot: () => ({ payments: [payment], refunds }),
+        };
+      },
+    });
+
+    expect(createCalls).toBe(1);
+    expect(result.result).toBe("pass");
+    expect(result.findings).toEqual([]);
+    expect(
+      result.trace.some((event) => event.type === "payment.refund.observed"),
+    ).toBe(true);
+    expect(
+      result.trace.some((event) => event.type === "payment.refund.created"),
+    ).toBe(false);
   });
 });

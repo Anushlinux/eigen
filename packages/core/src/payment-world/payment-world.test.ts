@@ -5,7 +5,11 @@ import {
   type Mandate,
   TraceRecorder,
 } from "../domain/index.js";
-import { AmbiguousPaymentError, PaymentWorld } from "./index.js";
+import {
+  AmbiguousPaymentError,
+  FaultInjectingPaymentProvider,
+  PaymentWorld,
+} from "./index.js";
 
 const mandate: Mandate = {
   id: "mandate_1",
@@ -26,16 +30,22 @@ function createWorld(
   const clock = new DeterministicClock(42);
   const ids = new DeterministicIdGenerator(42);
   const trace = new TraceRecorder(clock, ids);
-  const world = new PaymentWorld({
-    payments: [
-      {
-        id: "pay_1",
-        amount: 250_000,
-        currency: "INR",
-        status: "captured",
-        refunded_amount: 0,
-      },
-    ],
+  const payments = [
+    {
+      id: "pay_1",
+      amount: 250_000,
+      currency: "INR",
+      status: "captured",
+      refunded_amount: 0,
+    },
+  ];
+  const base = new PaymentWorld({
+    payments,
+    ids,
+    clock,
+  });
+  const world = new FaultInjectingPaymentProvider({
+    provider: base,
     faults: [
       {
         type: faultType,
@@ -43,16 +53,15 @@ function createWorld(
         occurrence: 1,
       },
     ],
-    ids,
-    clock,
     trace,
+    initialWorld: { payments, refunds: [] },
   });
-  return { world, trace };
+  return { world, trace, snapshot: () => base.snapshot() };
 }
 
 describe("PaymentWorld", () => {
   it("commits before raising an ambiguous post-side-effect timeout", async () => {
-    const { world, trace } = createWorld();
+    const { world, trace, snapshot } = createWorld();
     await expect(
       world.createRefund({
         payment_id: "pay_1",
@@ -66,7 +75,7 @@ describe("PaymentWorld", () => {
       }),
     ).rejects.toBeInstanceOf(AmbiguousPaymentError);
 
-    expect(world.snapshot().refunds).toHaveLength(1);
+    expect(snapshot().refunds).toHaveLength(1);
     const mutation = trace
       .events()
       .find((event) => event.type === "payment.refund.created");
@@ -77,7 +86,7 @@ describe("PaymentWorld", () => {
   });
 
   it("allows the valid partial-refund retry and preserves semantic identity", async () => {
-    const { world } = createWorld();
+    const { world, snapshot: takeSnapshot } = createWorld();
     await expect(
       world.createRefund({
         payment_id: "pay_1",
@@ -101,7 +110,7 @@ describe("PaymentWorld", () => {
       mandate,
     });
 
-    const snapshot = world.snapshot();
+    const snapshot = takeSnapshot();
     expect(snapshot.payments[0]?.refunded_amount).toBe(99_800);
     expect(snapshot.refunds).toHaveLength(2);
     expect(snapshot.refunds[0]?.semantic_fingerprint).toBe(
@@ -110,7 +119,7 @@ describe("PaymentWorld", () => {
   });
 
   it("rejects a refund that exceeds the remaining captured amount", async () => {
-    const { world } = createWorld();
+    const { world, snapshot } = createWorld();
     await expect(
       world.createRefund({
         payment_id: "pay_1",
@@ -123,11 +132,11 @@ describe("PaymentWorld", () => {
         mandate,
       }),
     ).rejects.toMatchObject({ code: "REFUND_EXCEEDS_CAPTURED_AMOUNT" });
-    expect(world.snapshot().refunds).toHaveLength(0);
+    expect(snapshot().refunds).toHaveLength(0);
   });
 
   it("returns the original refund for the same action key", async () => {
-    const { world, trace } = createWorld();
+    const { world, trace, snapshot } = createWorld();
     const input = {
       payment_id: "pay_1",
       amount: 49_900,
@@ -147,7 +156,7 @@ describe("PaymentWorld", () => {
       call_id: "call_002",
     });
 
-    expect(world.snapshot().refunds).toHaveLength(1);
+    expect(snapshot().refunds).toHaveLength(1);
     expect(existing.action_key).toBe("stable_action");
     expect(
       trace
@@ -157,7 +166,9 @@ describe("PaymentWorld", () => {
   });
 
   it("times out before mutation and allows one safe retry", async () => {
-    const { world, trace } = createWorld("timeout_before_side_effect");
+    const { world, trace, snapshot } = createWorld(
+      "timeout_before_side_effect",
+    );
     const input = {
       payment_id: "pay_1",
       amount: 49_900,
@@ -171,10 +182,10 @@ describe("PaymentWorld", () => {
     await expect(world.createRefund(input)).rejects.toBeInstanceOf(
       AmbiguousPaymentError,
     );
-    expect(world.snapshot().refunds).toHaveLength(0);
+    expect(snapshot().refunds).toHaveLength(0);
 
     await world.createRefund({ ...input, call_id: "call_002" });
-    expect(world.snapshot().refunds).toHaveLength(1);
+    expect(snapshot().refunds).toHaveLength(1);
     const fault = trace
       .events()
       .find((event) => event.type === "fault.injected");

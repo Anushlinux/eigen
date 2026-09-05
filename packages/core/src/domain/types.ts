@@ -4,7 +4,7 @@ export interface Payment {
   id: string;
   amount: number;
   currency: Currency;
-  status: "captured";
+  status: "created" | "authorized" | "captured" | "refunded" | "failed";
   refunded_amount: number;
 }
 
@@ -13,7 +13,7 @@ export interface Refund {
   payment_id: string;
   amount: number;
   currency: Currency;
-  status: "processed";
+  status: "pending" | "processed" | "failed";
   request_id: string;
   action_key: string;
   mandate_id: string;
@@ -200,6 +200,10 @@ export interface TracePayloadMap {
     refund: Refund;
     payment_refunded_amount: number;
   };
+  "payment.refund.observed": {
+    refund: Refund;
+    source: "reconciliation";
+  };
   "payment.refund.deduplicated": {
     refund: Refund;
     action_key: string;
@@ -358,7 +362,9 @@ export interface AgentComparisonResult {
 }
 
 export interface ComparisonReport {
-  schema_version: "1.1";
+  schema_version: "1.2";
+  comparison_id: string;
+  created_at: string;
   scenario_directory: string;
   scenarios: Array<{
     scenario_id: string;

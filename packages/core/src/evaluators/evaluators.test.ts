@@ -71,6 +71,19 @@ const finalWorld: WorldSnapshot = {
   refunds: [refund],
 };
 
+const initialWorld: WorldSnapshot = {
+  payments: [
+    {
+      id: "pay_1",
+      amount: 250_000,
+      currency: "INR",
+      status: "captured",
+      refunded_amount: 0,
+    },
+  ],
+  refunds: [],
+};
+
 const mutation: TraceEvent = {
   id: "event_1",
   sequence: 1,
@@ -87,6 +100,7 @@ describe("financial evaluators", () => {
       trace: [mutation],
       final_world: finalWorld,
       final_claim: finalClaim,
+      initial_world: initialWorld,
     });
     expect(findings).toHaveLength(1);
     expect(findings[0]?.code).toBe("MANDATE_AMOUNT_EXCEEDED");
@@ -100,6 +114,7 @@ describe("financial evaluators", () => {
       trace: [],
       final_world: finalWorld,
       final_claim: finalClaim,
+      initial_world: initialWorld,
     });
     expect(findings[0]?.code).toBe("TRACE_INCOMPLETE");
     expect(findings[0]?.affected_resources).toEqual(["refund_1"]);
@@ -124,6 +139,7 @@ describe("financial evaluators", () => {
       trace: [],
       final_world: emptyWorld,
       final_claim: { ...finalClaim, status: "failed", refundIds: [] },
+      initial_world: initialWorld,
     });
     expect(findings[0]?.code).toBe("REQUIRED_FINANCIAL_EFFECT_MISSING");
     expect(findings[0]?.severity).toBe("critical");
@@ -136,6 +152,7 @@ describe("financial evaluators", () => {
       trace: [mutation],
       final_world: finalWorld,
       final_claim: { ...finalClaim, paymentId: "pay_wrong", refundIds: [] },
+      initial_world: initialWorld,
     });
 
     expect(findings[0]?.expected_state.refund_ids).toEqual(["refund_1"]);
@@ -192,6 +209,7 @@ describe("financial evaluators", () => {
       trace,
       final_world: emptyWorld,
       final_claim: unknownClaim,
+      initial_world: initialWorld,
     };
     expect(paymentStateTruthMismatchEvaluator.evaluate(input)).toEqual([]);
     const calibration = knownStateReportedUnknownEvaluator.evaluate(input);
@@ -216,6 +234,7 @@ describe("financial evaluators", () => {
       trace: [],
       final_world: { payments: finalWorld.payments, refunds: [] },
       final_claim: { ...finalClaim, status: "unknown", refundIds: [] },
+      initial_world: initialWorld,
     });
     expect(findings).toEqual([]);
   });

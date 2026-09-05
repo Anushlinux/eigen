@@ -19,6 +19,8 @@ export interface AgentVersion {
 }
 
 export interface CompareAgentsInput {
+  comparisonId: string;
+  createdAt: string;
   scenarios: Scenario[];
   scenarioDirectory: string;
   baseline: AgentVersion;
@@ -126,7 +128,9 @@ export async function compareAgentVersions(
   );
 
   return {
-    schema_version: "1.1",
+    schema_version: "1.2",
+    comparison_id: input.comparisonId,
+    created_at: input.createdAt,
     scenario_directory: input.scenarioDirectory,
     scenarios: input.scenarios.map((scenario, index) => ({
       scenario_id: scenario.id,

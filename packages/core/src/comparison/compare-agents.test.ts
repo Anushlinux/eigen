@@ -63,6 +63,8 @@ const scenarios = [
 describe("agent comparison", () => {
   it("shows the duplicate regression removed without losing completion", async () => {
     const report = await compareAgentVersions({
+      comparisonId: "comparison_test",
+      createdAt: "2026-09-04T00:00:00.000Z",
       scenarios,
       scenarioDirectory: "scenarios/refunds",
       baseline: {
@@ -110,6 +112,8 @@ describe("agent comparison", () => {
 
   it("is deterministic across complete comparisons", async () => {
     const input = {
+      comparisonId: "comparison_test",
+      createdAt: "2026-09-04T00:00:00.000Z",
       scenarios,
       scenarioDirectory: "scenarios/refunds",
       baseline: {

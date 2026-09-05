@@ -12,6 +12,8 @@
   "dependencies": {
     "@eigen/core": "workspace:*",
     "@eigen/openai-adapter": "workspace:*",
+    "@eigen/razorpay-adapter": "workspace:*",
+    "@eigen/razorpay-smoke": "workspace:*",
     "@openai/agents": "^0.17.0",
     "commander": "^14.0.0",
     "yaml": "^2.8.1"

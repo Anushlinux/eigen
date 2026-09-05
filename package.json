@@ -8,14 +8,16 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "pnpm --filter @eigen/core build && pnpm --filter @eigen/openai-adapter build && pnpm --filter @eigen/cli build",
-    "typecheck": "pnpm --filter @eigen/core build && tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/openai-adapter/tsconfig.json --noEmit && tsc -p apps/cli/tsconfig.json --noEmit",
-    "test": "pnpm --filter @eigen/core build && pnpm --filter @eigen/openai-adapter build && vitest run",
+    "build": "pnpm --filter @eigen/core build && pnpm --filter @eigen/razorpay-adapter build && pnpm --filter @eigen/openai-adapter build && pnpm --filter @eigen/razorpay-smoke build && pnpm --filter @eigen/cli build && pnpm --filter @eigen/dashboard build",
+    "typecheck": "pnpm --filter @eigen/core build && pnpm --filter @eigen/razorpay-adapter build && pnpm --filter @eigen/openai-adapter build && pnpm --filter @eigen/razorpay-smoke build && tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/razorpay-adapter/tsconfig.json --noEmit && tsc -p packages/openai-adapter/tsconfig.json --noEmit && tsc -p packages/razorpay-smoke/tsconfig.json --noEmit && tsc -p apps/cli/tsconfig.json --noEmit && tsc -p apps/dashboard/tsconfig.json && tsc -p apps/dashboard/tsconfig.server.json --noEmit",
+    "test": "pnpm --filter @eigen/core build && pnpm --filter @eigen/razorpay-adapter build && pnpm --filter @eigen/openai-adapter build && pnpm --filter @eigen/razorpay-smoke build && vitest run",
     "lint": "biome check .",
     "check": "pnpm build && pnpm typecheck && pnpm lint && pnpm test",
     "demo": "pnpm build && node apps/cli/dist/demo.js",
     "compare-demo": "pnpm build && node apps/cli/dist/index.js compare scenarios/refunds --baseline flawed-refund --candidate safe-refund",
     "regression-demo": "pnpm build && node apps/cli/dist/regression-demo.js",
+    "razorpay-smoke": "pnpm eigen razorpay smoke --help",
+    "dashboard": "pnpm build && node --env-file-if-exists=.env apps/dashboard/dist-server/server.js",
     "eigen": "pnpm build && node --env-file-if-exists=.env apps/cli/dist/index.js",
     "llm-demo": "pnpm eigen experiment scenarios/refunds --agents openai-refund-v1,openai-refund-v2 --runs 5 --allow-failures"
   },

@@ -5,6 +5,7 @@ import { Command, CommanderError } from "commander";
 import { compareCommand } from "./commands/compare.js";
 import { experimentCommand } from "./commands/experiment.js";
 import { promoteCommand } from "./commands/promote.js";
+import { razorpaySmokeCommand } from "./commands/razorpay-smoke.js";
 import { regressCommand } from "./commands/regress.js";
 import { type CommandIo, runScenarioCommand } from "./commands/run.js";
 
@@ -33,6 +34,59 @@ export async function main(
       writeOut: io.stdout,
       writeErr: io.stderr,
     });
+
+  const razorpay = program
+    .command("razorpay")
+    .description("Manual Razorpay Test Mode operations");
+  razorpay
+    .command("smoke")
+    .description("Create and verify one Razorpay Test Mode partial refund")
+    .option("--payment-id <payment-id>", "Razorpay Test Mode payment ID")
+    .requiredOption("--amount <minor-units>", "positive integer minor units")
+    .requiredOption("--agent <agent-name>", "must be openai-refund-v3")
+    .option("--currency <currency>", "expected payment currency", "INR")
+    .requiredOption("--fault <fault-name>", "must be timeout-after-side-effect")
+    .addHelpText(
+      "after",
+      [
+        "",
+        "Required environment:",
+        "  RAZORPAY_KEY_ID=rzp_test_...",
+        "  RAZORPAY_KEY_SECRET=...",
+        "  RAZORPAY_TEST_PAYMENT_ID=pay_... (when --payment-id is omitted)",
+        "  EIGEN_ALLOW_RAZORPAY_TEST_WRITES=1",
+        "  OPENAI_API_KEY=...",
+        "  OPENAI_MODEL=...",
+        "",
+        "Example (manual Test Mode write):",
+        "  eigen razorpay smoke \\",
+        "    --payment-id pay_xxx \\",
+        "    --amount 49900 \\",
+        "    --agent openai-refund-v3 \\",
+        "    --fault timeout-after-side-effect",
+        "",
+      ].join("\n"),
+    )
+    .action(
+      async (commandOptions: {
+        paymentId?: string;
+        amount: string;
+        agent: string;
+        currency: string;
+        fault?: string;
+      }) => {
+        const outcome = await razorpaySmokeCommand({
+          paymentId: commandOptions.paymentId,
+          amount: commandOptions.amount,
+          agentName: commandOptions.agent,
+          currency: commandOptions.currency,
+          fault: commandOptions.fault,
+          cwd,
+          io,
+        });
+        commandExitCode = outcome.exitCode;
+      },
+    );
 
   program
     .command("promote")
@@ -155,6 +209,7 @@ export async function main(
         return 0;
       }
       if (argv[2] === "experiment") return 1;
+      if (argv[2] === "razorpay") return 2;
       if (argv[2] === "promote" || argv[2] === "regress") return 2;
       return 2;
     }

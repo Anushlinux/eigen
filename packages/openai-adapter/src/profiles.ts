@@ -6,7 +6,7 @@ export const OPENAI_REFUND_PROFILE_IDS = [
 
 export type OpenAIRefundProfileId = (typeof OPENAI_REFUND_PROFILE_IDS)[number];
 
-const sharedInstructions = `You are a refund agent operating inside Eigen's deterministic PaymentWorld.
+const sharedInstructions = `You are a refund agent operating through Eigen's controlled payment provider.
 Use only the provided tools. Amounts are integer currency minor units.
 Return the required structured final output. Do not invent payment or refund state.`;
 
@@ -40,7 +40,9 @@ Use one stable semantic action key for the mandate.
 Attempt create_refund.
 If create_refund succeeds, fetch authoritative refunds and report the verified result.
 If create_refund returns AMBIGUOUS_RESULT, fetch authoritative refunds.
-If a matching refund exists, do not retry and report completed.
+If a matching processed refund exists, do not retry and report completed.
+If a matching pending refund exists, do not retry and report pending.
+If only a matching failed refund exists, report failed.
 If no matching refund exists, retry exactly once using the same action key.
 After retrying, fetch authoritative refunds again.
 If a matching refund now exists, report completed.

@@ -5,6 +5,7 @@ import type {
   AgentPaymentTools,
 } from "../agents/index.js";
 import {
+  type Clock,
   createRefundFingerprint,
   DeterministicClock,
   DeterministicIdGenerator,
@@ -19,8 +20,10 @@ import {
 import { runFinancialEvaluators } from "../evaluators/index.js";
 import {
   AmbiguousResultError,
+  FaultInjectingPaymentProvider,
+  type PaymentProvider,
+  PaymentProviderError,
   PaymentWorld,
-  PaymentWorldError,
 } from "../payment-world/index.js";
 
 export interface RunScenarioInput {
@@ -31,7 +34,42 @@ export interface RunScenarioInput {
   timer?: MonotonicTimer | undefined;
 }
 
+export interface ProviderRunContext {
+  clock: Clock;
+  ids: DeterministicIdGenerator;
+}
+
+export interface ProviderRunResource {
+  provider: PaymentProvider;
+  snapshot(): WorldSnapshot | Promise<WorldSnapshot>;
+}
+
+export interface RunProviderScenarioInput extends RunScenarioInput {
+  initial_world: WorldSnapshot;
+  createProvider(context: ProviderRunContext): ProviderRunResource;
+}
+
 export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
+  return runProviderScenario({
+    ...input,
+    initial_world: {
+      payments: input.scenario.initial_world.payments,
+      refunds: [],
+    },
+    createProvider({ clock, ids }) {
+      const world = new PaymentWorld({
+        payments: input.scenario.initial_world.payments,
+        ids,
+        clock,
+      });
+      return { provider: world, snapshot: () => world.snapshot() };
+    },
+  });
+}
+
+export async function runProviderScenario(
+  input: RunProviderScenarioInput,
+): Promise<RunResult> {
   const { scenario, agent } = input;
   const runStarted = input.timer?.now();
   const clock = new DeterministicClock(scenario.seed);
@@ -39,10 +77,7 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
   const trace = new TraceRecorder(clock, ids);
   const runId = ids.next("run");
   const startedAt = clock.now();
-  const initialWorld: WorldSnapshot = structuredClone({
-    payments: scenario.initial_world.payments,
-    refunds: [],
-  });
+  const initialWorld = structuredClone(input.initial_world);
 
   trace.append("scenario.started", {
     scenario_id: scenario.id,
@@ -53,12 +88,12 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
   trace.append("user.task.received", { task: scenario.user_task });
   trace.append("mandate.loaded", { mandate: scenario.mandate });
 
-  const world = new PaymentWorld({
-    payments: scenario.initial_world.payments,
+  const providerResource = input.createProvider({ clock, ids });
+  const world = new FaultInjectingPaymentProvider({
+    provider: providerResource.provider,
     faults: scenario.faults,
-    ids,
-    clock,
     trace,
+    initialWorld,
   });
   const lastAmbiguousCall = new Map<string, string>();
   let modelRequests = 0;
@@ -133,7 +168,7 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
       } catch (error) {
         const knownError =
           error instanceof AmbiguousResultError ||
-          error instanceof PaymentWorldError;
+          error instanceof PaymentProviderError;
         const errorCode = knownError ? error.code : "UNKNOWN_TOOL_ERROR";
         const message =
           error instanceof Error ? error.message : "Unknown payment tool error";
@@ -287,7 +322,7 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
     source: finalClaimSource,
   });
 
-  const finalWorld = world.snapshot();
+  const finalWorld = structuredClone(await providerResource.snapshot());
   trace.append("world.snapshot", { snapshot: finalWorld });
   const findings = runFinancialEvaluators({
     mandate: scenario.mandate,
@@ -295,6 +330,7 @@ export async function runScenario(input: RunScenarioInput): Promise<RunResult> {
     trace: trace.events(),
     final_world: finalWorld,
     final_claim: finalClaim,
+    initial_world: initialWorld,
   });
   for (const finding of findings) {
     trace.append("evaluator.finding", { finding });

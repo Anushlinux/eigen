@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import {
@@ -23,6 +24,18 @@ export interface CompareCommandOutcome {
   exitCode: 0 | 1 | 2;
   report?: ComparisonReport;
 }
+
+export interface CompareCommandDependencies {
+  now(): string;
+  nextId(): string;
+  writeReport(report: ComparisonReport, outputPath: string): Promise<void>;
+}
+
+const defaultDependencies: CompareCommandDependencies = {
+  now: () => new Date().toISOString(),
+  nextId: () => `comparison_${randomUUID()}`,
+  writeReport: writeComparisonReport,
+};
 
 export async function loadScenarios(
   directoryPath: string,
@@ -57,6 +70,7 @@ export async function loadScenarios(
 
 export async function compareCommand(
   options: CompareCommandOptions,
+  injectedDependencies: CompareCommandDependencies = defaultDependencies,
 ): Promise<CompareCommandOutcome> {
   const baseline = createAgent(options.baselineName);
   if (!baseline) {
@@ -72,7 +86,11 @@ export async function compareCommand(
   try {
     const absoluteDirectory = resolve(options.cwd, options.scenarioDirectory);
     const scenarios = await loadScenarios(absoluteDirectory);
+    const comparisonId = injectedDependencies.nextId();
+    const createdAt = injectedDependencies.now();
     const report = await compareAgentVersions({
+      comparisonId,
+      createdAt,
       scenarios,
       scenarioDirectory: options.scenarioDirectory,
       baseline: {
@@ -92,12 +110,19 @@ export async function compareCommand(
         },
       },
     });
-    const reportPath = resolve(
+    const historyPath = resolve(
+      options.cwd,
+      "reports",
+      "comparisons",
+      `${comparisonId}.json`,
+    );
+    const latestPath = resolve(
       options.cwd,
       "reports",
       "comparison-latest.json",
     );
-    await writeComparisonReport(report, reportPath);
+    await injectedDependencies.writeReport(report, historyPath);
+    await injectedDependencies.writeReport(report, latestPath);
     options.io.stdout(
       formatComparisonReport(report, "reports/comparison-latest.json"),
     );

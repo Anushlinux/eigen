@@ -1,6 +1,7 @@
 node_modules/
 .pnpm-store/
 dist/
+dist-server/
 coverage/
 reports/*.json
 reports/runs/

@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-04T17:40:35Z",
+  "title": "Design System: Eigen",
+  "extensions": {
+    "colorMeta": {
+      "bone-field": {
+        "role": "neutral",
+        "displayName": "Bone Field",
+        "canonical": "#f2eedf",
+        "tonalRamp": [
+          "#29271f",
+          "#49453a",
+          "#696458",
+          "#898376",
+          "#aaa493",
+          "#cbc5af",
+          "#e5dfcc",
+          "#faf7ef"
+        ]
+      },
+      "evidence-paper": {
+        "role": "neutral",
+        "displayName": "Evidence Paper",
+        "canonical": "#faf7eb",
+        "tonalRamp": [
+          "#2b2922",
+          "#4b483d",
+          "#6c685b",
+          "#8d8879",
+          "#aea999",
+          "#cfcaba",
+          "#e9e4d5",
+          "#fffdf5"
+        ]
+      },
+      "recorder-ink": {
+        "role": "neutral",
+        "displayName": "Recorder Ink",
+        "canonical": "#101317",
+        "tonalRamp": [
+          "#101317",
+          "#282c31",
+          "#41464c",
+          "#5c6168",
+          "#797e85",
+          "#989ca2",
+          "#b8bbc0",
+          "#f1f2f3"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#30343a",
+        "tonalRamp": [
+          "#17191d",
+          "#30343a",
+          "#4a4f56",
+          "#656a72",
+          "#81868d",
+          "#9ea2a8",
+          "#bcbfc3",
+          "#f2f3f4"
+        ]
+      },
+      "ledger-rule": {
+        "role": "neutral",
+        "displayName": "Ledger Rule",
+        "canonical": "#a7a18f",
+        "tonalRamp": [
+          "#28251f",
+          "#464139",
+          "#655f54",
+          "#847e70",
+          "#a7a18f",
+          "#c1bbab",
+          "#ddd7c7",
+          "#f6f2e7"
+        ]
+      },
+      "ledger-rule-dark": {
+        "role": "neutral",
+        "displayName": "Dark Ledger Rule",
+        "canonical": "#55564f",
+        "tonalRamp": [
+          "#171814",
+          "#2a2b26",
+          "#41423c",
+          "#55564f",
+          "#73746c",
+          "#94958c",
+          "#b8b9b0",
+          "#f0f0ec"
+        ]
+      },
+      "action-cobalt": {
+        "role": "primary",
+        "displayName": "Action Cobalt",
+        "canonical": "#2456ff",
+        "tonalRamp": [
+          "#07123b",
+          "#0b225f",
+          "#103386",
+          "#1745bd",
+          "#2456ff",
+          "#6481ff",
+          "#a5b5ff",
+          "#eef1ff"
+        ]
+      },
+      "action-cobalt-pale": {
+        "role": "primary",
+        "displayName": "Pale Action Cobalt",
+        "canonical": "#dfe6ff",
+        "tonalRamp": [
+          "#151a2d",
+          "#2b355d",
+          "#46558f",
+          "#6678ba",
+          "#8fa0dc",
+          "#b6c2ef",
+          "#dfe6ff",
+          "#f5f7ff"
+        ]
+      },
+      "fault-vermilion": {
+        "role": "secondary",
+        "displayName": "Fault Vermilion",
+        "canonical": "#e44a35",
+        "tonalRamp": [
+          "#3d110c",
+          "#672017",
+          "#913023",
+          "#bd3d2d",
+          "#e44a35",
+          "#ee7565",
+          "#f5aa9f",
+          "#fdeeea"
+        ]
+      },
+      "fault-vermilion-pale": {
+        "role": "secondary",
+        "displayName": "Pale Fault Vermilion",
+        "canonical": "#f7ddd6",
+        "tonalRamp": [
+          "#2f1b17",
+          "#5a332c",
+          "#865047",
+          "#b67266",
+          "#d99b90",
+          "#edbeb5",
+          "#f7ddd6",
+          "#fff5f2"
+        ]
+      },
+      "verified-green": {
+        "role": "tertiary",
+        "displayName": "Verified Green",
+        "canonical": "#2e8b57",
+        "tonalRamp": [
+          "#0b2818",
+          "#12462a",
+          "#1d653e",
+          "#2e8b57",
+          "#55a977",
+          "#83c59a",
+          "#b8dfc6",
+          "#eef8f1"
+        ]
+      },
+      "verified-green-pale": {
+        "role": "tertiary",
+        "displayName": "Pale Verified Green",
+        "canonical": "#dcebdc",
+        "tonalRamp": [
+          "#17261a",
+          "#304b35",
+          "#507053",
+          "#759578",
+          "#9cbaa0",
+          "#bed6c0",
+          "#dcebdc",
+          "#f4faf4"
+        ]
+      },
+      "focus-violet": {
+        "role": "tertiary",
+        "displayName": "Focus Violet",
+        "canonical": "#8a3ffc",
+        "tonalRamp": [
+          "#24103f",
+          "#3e176c",
+          "#5c239b",
+          "#7831cb",
+          "#8a3ffc",
+          "#a873ff",
+          "#c9a9ff",
+          "#f4edff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Condensed Decision",
+        "purpose": "One decisive comparison or run statement."
+      },
+      "title": {
+        "displayName": "Recorder Title",
+        "purpose": "Agent names and evidence section titles."
+      },
+      "body": {
+        "displayName": "Explanatory Body",
+        "purpose": "Short plain-language explanations."
+      },
+      "label": {
+        "displayName": "System Label",
+        "purpose": "Sequence, identifiers, configuration, and status."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "recorder-response",
+        "value": "180ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Milestone selection feedback."
+      },
+      {
+        "name": "calibration",
+        "value": "1.4s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Loading calibration line; disabled when reduced motion is requested."
+      }
+    ],
+    "breakpoints": [
+      { "name": "compact-desktop", "value": "1100px" },
+      { "name": "evidence-stack", "value": "760px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single high-confidence action in a workflow.",
+      "html": "<button class=\"ds-primary-action\">PREVIEW EXACT REFUND</button>",
+      "css": ".ds-primary-action { border: 1px solid #101317; border-radius: 0; padding: 12px 16px; color: #faf7eb; background: #101317; font: 800 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; } .ds-primary-action:hover { background: #2456ff; } .ds-primary-action:focus-visible { outline: 3px solid #8a3ffc; outline-offset: 3px; }"
+    },
+    {
+      "name": "Evidence Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "A labelled exact-value field for IDs and integer minor units.",
+      "html": "<label class=\"ds-field\"><span>COMPLETE PAYMENT ID</span><input value=\"pay_xxx\" /></label>",
+      "css": ".ds-field { display: grid; gap: 6px; color: #101317; font: 800 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .08em; } .ds-field input { border: 1px solid #55564f; border-radius: 0; padding: 12px; color: #101317; background: #faf7eb; font: 400 15px/1.45 Inter, ui-sans-serif, sans-serif; } .ds-field input:focus-visible { outline: 3px solid #8a3ffc; outline-offset: 3px; }"
+    },
+    {
+      "name": "Ruled Navigation",
+      "kind": "nav",
+      "description": "The square top rail with a reversed active tab.",
+      "html": "<nav class=\"ds-nav\"><strong>EIGEN</strong><button>RUNS</button><button aria-current=\"page\">COMPARE</button></nav>",
+      "css": ".ds-nav { display: flex; align-items: stretch; border: 1px solid #101317; color: #101317; background: #f2eedf; } .ds-nav strong, .ds-nav button { display: grid; place-items: center; min-height: 54px; border: 0; border-right: 1px solid #101317; padding: 0 20px; background: transparent; font: 800 11px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .12em; } .ds-nav button[aria-current=page] { color: #faf7eb; background: #101317; } .ds-nav button:hover { color: #2456ff; } .ds-nav button:focus-visible { outline: 3px solid #8a3ffc; outline-offset: -4px; }"
+    },
+    {
+      "name": "Pass Stamp",
+      "kind": "chip",
+      "refersTo": "decision-pass",
+      "description": "A textual verified-success decision stamp.",
+      "html": "<span class=\"ds-pass-stamp\">ALLOW</span>",
+      "css": ".ds-pass-stamp { display: inline-flex; min-width: 88px; align-items: center; justify-content: center; border: 1px solid #2e8b57; border-radius: 0; padding: 8px 10px 6px; color: #faf7eb; background: #2e8b57; font: 900 12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .09em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Block Stamp",
+      "kind": "chip",
+      "refersTo": "decision-block",
+      "description": "A textual unsafe or unsupported decision stamp.",
+      "html": "<span class=\"ds-block-stamp\">BLOCK</span>",
+      "css": ".ds-block-stamp { display: inline-flex; min-width: 88px; align-items: center; justify-content: center; border: 1px solid #e44a35; border-radius: 0; padding: 8px 10px 6px; color: #faf7eb; background: #e44a35; font: 900 12px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .09em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Recorder Milestone",
+      "kind": "custom",
+      "description": "A numbered event node with visible label and evidence summary.",
+      "html": "<button class=\"ds-milestone\"><span>04</span><i></i><strong>CHECK PROVIDER</strong><small>Fetch authoritative refunds</small></button>",
+      "css": ".ds-milestone { display: grid; justify-items: center; gap: 5px; border: 0; padding: 8px; color: #58ba7c; background: #101317; text-align: center; cursor: pointer; } .ds-milestone span { color: #999787; font: 400 9px/1.2 ui-monospace, monospace; } .ds-milestone i { width: 13px; height: 13px; border: 2px solid currentColor; background: #101317; transform: rotate(45deg); transition: transform 180ms cubic-bezier(.16,1,.3,1); } .ds-milestone strong { font: 700 13px/1 Avenir Next Condensed, Arial Narrow, sans-serif; } .ds-milestone small { max-width: 16ch; color: #bdb7a4; font: 400 10px/1.25 Inter, sans-serif; } .ds-milestone:hover i, .ds-milestone:focus-visible i { transform: rotate(45deg) scale(1.28); background: currentColor; } .ds-milestone:focus-visible { outline: 3px solid #8a3ffc; outline-offset: 3px; }"
+    },
+    {
+      "name": "Fault Seam",
+      "kind": "custom",
+      "description": "The shared boundary where provider side effect and lost response diverge.",
+      "html": "<div class=\"ds-fault-seam\"><span>RESPONSE LOST</span></div>",
+      "css": ".ds-fault-seam { position: relative; width: 1px; height: 180px; background: #e44a35; } .ds-fault-seam span { position: absolute; top: 50%; left: 0; padding: 5px 8px; color: #faf7eb; background: #e44a35; font: 800 10px/1.2 ui-monospace, monospace; letter-spacing: .08em; white-space: nowrap; text-transform: uppercase; transform: translate(-50%,-50%) rotate(-90deg); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Financial Flight Recorder",
+    "overview": "Eigen looks like an evidence instrument, not an analytics product. Warm paper establishes a calm inspection field; near-black recorder strips hold the event sequence; thin rules make relationships exact without adding decorative weight. The interface is dense, but its hierarchy stays legible because type scale, sequence, and status color each have one job.\n\nThe visual language is forensic and restrained. Large condensed headlines state the conclusion. Monospaced labels expose identifiers, timestamps, and system state. Cobalt marks deliberate safe action, vermilion marks ambiguity or an unsafe financial effect, and green is reserved for deterministically verified success.",
+    "keyCharacteristics": [
+      "Warm evidence-paper surfaces surrounding near-black recorder lanes.",
+      "Square geometry and hairline ledger rules instead of soft cards or floating panels.",
+      "Synchronized event sequences with a visible fault seam and inspectable evidence.",
+      "Condensed display type paired with plain body text and monospaced system labels.",
+      "Explicit offline, Test Mode, PASS, BLOCK, ALLOW, and configuration states."
+    ],
+    "rules": [
+      {
+        "name": "The Evidence Color Rule",
+        "body": "Status colors describe evidence, not decoration. Green cannot appear unless the state has been deterministically verified.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Fault Rule",
+        "body": "Vermilion draws the single shared fault boundary first; related unsafe events may echo it, but they cannot create competing focal points.",
+        "section": "colors"
+      },
+      {
+        "name": "The Claim First Rule",
+        "body": "The largest type states the product truth or comparison thesis, never a decorative slogan.",
+        "section": "typography"
+      },
+      {
+        "name": "The Identifier Rule",
+        "body": "IDs, currency totals, timestamps, and configuration states use tabular or monospaced text so differences remain visually stable.",
+        "section": "typography"
+      },
+      {
+        "name": "The Connected Proof Rule",
+        "body": "If one decision depends on several events, keep those events in one uninterrupted composition rather than splitting them into unrelated cards.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Evidence Rule",
+        "body": "Surfaces never float above the evidence. A state change is shown through color, rule weight, or selection—not elevation.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No Soft Card Rule",
+        "body": "Do not introduce rounded dashboard cards, pill-shaped status chips, or decorative blobs.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do show whether evidence is simulated, offline-verified, or observed from a credentialed Test Mode run.",
+      "Do keep money in integer minor units and use tabular formatting for exact totals.",
+      "Do preserve event order, correlation identifiers, provider exchange summaries, and linked findings.",
+      "Do reserve green for verified success and vermilion for ambiguity, unsafe effects, or blocked decisions.",
+      "Do use a structured mobile stack when aligned desktop lanes no longer fit."
+    ],
+    "donts": [
+      "Don't imply that offline tests are a live Razorpay proof.",
+      "Don't use gradients, glass effects, decorative charts, floating shadows, or generic analytics cards.",
+      "Don't hide a retry, duplicate effect, pending refund, or mismatched claim behind an aggregate score.",
+      "Don't rely on color alone; pair every state with a label, number, symbol, or sequence position.",
+      "Don't add imagery that competes with the real product content: traces, reports, findings, and provider truth."
+    ]
+  }
+}

@@ -37,7 +37,9 @@ export class SafeRefundAgent implements AgentAdapter {
         semantic_action_key: actionKey,
       });
       const existing = reconciled.find(
-        (refund) => refund.semantic_fingerprint === actionKey,
+        (refund) =>
+          refund.semantic_fingerprint === actionKey &&
+          refund.status !== "failed",
       );
       if (!existing) {
         input.emitMessage(
@@ -52,25 +54,29 @@ export class SafeRefundAgent implements AgentAdapter {
       semantic_action_key: actionKey,
     });
     const matchingRefunds = authoritativeRefunds.filter(
-      (refund) => refund.semantic_fingerprint === actionKey,
+      (refund) =>
+        refund.semantic_fingerprint === actionKey && refund.status !== "failed",
     );
     if (matchingRefunds.length === 0) {
       throw new Error(
         "Authoritative state does not contain the required refund",
       );
     }
-    const totalRefunded = authoritativeRefunds.reduce(
+    const totalRefunded = matchingRefunds.reduce(
       (total, refund) => total + refund.amount,
       0,
     );
 
+    const pending = matchingRefunds.some(
+      (refund) => refund.status === "pending",
+    );
     return {
-      status: "completed",
+      status: pending ? "pending" : "completed",
       paymentId: input.task.payment_id,
-      refundIds: authoritativeRefunds.map((refund) => refund.id),
+      refundIds: matchingRefunds.map((refund) => refund.id),
       amount: input.task.amount,
       currency: input.task.currency,
-      message: `Authoritative payment state shows ${authoritativeRefunds.length} processed refund totaling ${totalRefunded} ${input.task.currency} minor units.`,
+      message: `Authoritative payment state shows ${matchingRefunds.length} matching refund totaling ${totalRefunded} ${input.task.currency} minor units.`,
     };
   }
 }

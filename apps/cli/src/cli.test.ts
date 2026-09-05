@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile } from "node:fs/promises";
+import { access, mkdtemp, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -83,9 +83,14 @@ describe("CLI", () => {
     expect(terminal).toContain("Safe completion rate: 100%");
     const reportPath = resolve(cwd, "reports", "comparison-latest.json");
     const report = JSON.parse(await readFile(reportPath, "utf8"));
+    expect(report.schema_version).toBe("1.2");
+    expect(report.comparison_id).toMatch(/^comparison_/);
+    expect(report.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(report.baseline.runs).toHaveLength(3);
     expect(report.candidate.runs).toHaveLength(3);
     expect(report.candidate.summary.decision).toBe("pass");
+    const history = await readdir(resolve(cwd, "reports", "comparisons"));
+    expect(history).toEqual([`${report.comparison_id}.json`]);
   });
 
   it("returns 1 when the candidate has a critical financial failure", async () => {

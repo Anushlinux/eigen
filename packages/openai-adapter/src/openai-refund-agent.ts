@@ -10,7 +10,7 @@ import type {
 import {
   AmbiguousResultError,
   createRefundFingerprint,
-  PaymentWorldError,
+  PaymentProviderError,
   SystemMonotonicTimer,
 } from "@eigen/core";
 import {
@@ -69,7 +69,7 @@ const paymentResultSchema = z
     id: identifierSchema,
     amount: z.number().int().positive(),
     currency: currencySchema,
-    status: z.literal("captured"),
+    status: z.enum(["created", "authorized", "captured", "refunded", "failed"]),
     refundedAmount: z.number().int().nonnegative(),
   })
   .strict();
@@ -79,7 +79,7 @@ const refundResultSchema = z
     paymentId: identifierSchema,
     amount: z.number().int().positive(),
     currency: currencySchema,
-    status: z.literal("processed"),
+    status: z.enum(["pending", "processed", "failed"]),
     actionKey: identifierSchema,
     mandateId: identifierSchema,
     purpose: identifierSchema,
@@ -201,7 +201,7 @@ function modelRefund(refund: Refund) {
 
 function safeToolError(error: unknown) {
   if (error instanceof AmbiguousResultError) return AMBIGUOUS_RESULT;
-  if (error instanceof PaymentWorldError) {
+  if (error instanceof PaymentProviderError) {
     return {
       ok: false as const,
       errorCode: error.code,

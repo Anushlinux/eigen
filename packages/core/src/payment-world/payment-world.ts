@@ -35,24 +35,34 @@ export interface PaymentProvider {
   fetchRefundsForPayment(input: FetchRefundsInput): Promise<Refund[]>;
 }
 
-export class PaymentWorldError extends Error {
-  readonly code: string;
+export type PaymentProviderErrorCategory =
+  | "validation"
+  | "authentication"
+  | "rate_limit"
+  | "conflict"
+  | "remote_response"
+  | "unavailable";
 
-  constructor(code: string, message: string) {
+export class PaymentProviderError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+    readonly category: PaymentProviderErrorCategory = "validation",
+    readonly retryable = false,
+    readonly statusCode?: number,
+  ) {
     super(message);
-    this.name = "PaymentWorldError";
-    this.code = code;
+    this.name = "PaymentProviderError";
   }
 }
 
+export { PaymentProviderError as PaymentWorldError };
+
 export class AmbiguousResultError extends Error {
-  readonly code = "AMBIGUOUS_TIMEOUT";
+  readonly code = "AMBIGUOUS_RESULT";
   readonly ambiguous = true;
 
-  constructor(
-    message: string,
-    readonly refundId?: string,
-  ) {
+  constructor(message = "The financial outcome is unknown.") {
     super(message);
     this.name = "AmbiguousResultError";
   }
@@ -62,16 +72,13 @@ export { AmbiguousResultError as AmbiguousPaymentError };
 
 export interface PaymentWorldDependencies {
   payments: Payment[];
-  faults: FaultSpec[];
   ids: DeterministicIdGenerator;
   clock: Clock;
-  trace: TraceRecorder;
 }
 
 export class PaymentWorld implements PaymentProvider {
   private readonly payments = new Map<string, Payment>();
   private readonly refunds: Refund[] = [];
-  private readonly operationOccurrences = new Map<string, number>();
 
   constructor(private readonly dependencies: PaymentWorldDependencies) {
     for (const payment of dependencies.payments) {
@@ -82,7 +89,7 @@ export class PaymentWorld implements PaymentProvider {
   async fetchPayment(input: FetchPaymentInput): Promise<Payment> {
     const payment = this.payments.get(input.payment_id);
     if (!payment) {
-      throw new PaymentWorldError(
+      throw new PaymentProviderError(
         "PAYMENT_NOT_FOUND",
         `Payment ${input.payment_id} does not exist`,
       );
@@ -93,25 +100,25 @@ export class PaymentWorld implements PaymentProvider {
   async createRefund(input: CreateRefundInput): Promise<Refund> {
     const payment = this.payments.get(input.payment_id);
     if (!payment) {
-      throw new PaymentWorldError(
+      throw new PaymentProviderError(
         "PAYMENT_NOT_FOUND",
         `Payment ${input.payment_id} does not exist`,
       );
     }
     if (payment.status !== "captured") {
-      throw new PaymentWorldError(
+      throw new PaymentProviderError(
         "PAYMENT_NOT_CAPTURED",
         `Payment ${payment.id} is not captured`,
       );
     }
     if (!Number.isInteger(input.amount) || input.amount <= 0) {
-      throw new PaymentWorldError(
+      throw new PaymentProviderError(
         "INVALID_REFUND_AMOUNT",
         "Refund amount must be a positive integer in minor units",
       );
     }
     if (input.currency !== payment.currency) {
-      throw new PaymentWorldError(
+      throw new PaymentProviderError(
         "CURRENCY_MISMATCH",
         `Refund currency ${input.currency} does not match ${payment.currency}`,
       );
@@ -128,48 +135,19 @@ export class PaymentWorld implements PaymentProvider {
         existingRefund.purpose === input.purpose &&
         existingRefund.mandate_id === input.mandate.id;
       if (!sameAction) {
-        throw new PaymentWorldError(
+        throw new PaymentProviderError(
           "ACTION_KEY_CONFLICT",
           "The action key was already used for a different refund intention",
+          "conflict",
         );
       }
-      this.dependencies.trace.append(
-        "payment.refund.deduplicated",
-        {
-          refund: structuredClone(existingRefund),
-          action_key: input.action_key,
-        },
-        input.call_id,
-      );
       return structuredClone(existingRefund);
     }
 
     if (payment.refunded_amount + input.amount > payment.amount) {
-      throw new PaymentWorldError(
+      throw new PaymentProviderError(
         "REFUND_EXCEEDS_CAPTURED_AMOUNT",
         "Refund would exceed the captured payment amount",
-      );
-    }
-
-    const occurrence = this.nextOccurrence("create_refund");
-    const beforeSideEffectFault = this.dependencies.faults.find(
-      (candidate) =>
-        candidate.operation === "create_refund" &&
-        candidate.type === "timeout_before_side_effect" &&
-        candidate.occurrence === occurrence,
-    );
-    if (beforeSideEffectFault) {
-      this.dependencies.trace.append(
-        "fault.injected",
-        {
-          fault: beforeSideEffectFault,
-          operation: "create_refund",
-          call_id: input.call_id,
-        },
-        input.call_id,
-      );
-      throw new AmbiguousResultError(
-        "The request timed out before the refund committed",
       );
     }
 
@@ -196,38 +174,6 @@ export class PaymentWorld implements PaymentProvider {
 
     payment.refunded_amount += refund.amount;
     this.refunds.push(refund);
-    this.dependencies.trace.append(
-      "payment.refund.created",
-      {
-        refund: structuredClone(refund),
-        payment_refunded_amount: payment.refunded_amount,
-      },
-      input.call_id,
-    );
-
-    const fault = this.dependencies.faults.find(
-      (candidate) =>
-        candidate.operation === "create_refund" &&
-        candidate.type === "timeout_after_side_effect" &&
-        candidate.occurrence === occurrence,
-    );
-    if (fault) {
-      this.dependencies.trace.append(
-        "fault.injected",
-        {
-          fault,
-          operation: "create_refund",
-          call_id: input.call_id,
-          refund_id: refund.id,
-        },
-        input.call_id,
-      );
-      throw new AmbiguousResultError(
-        "The refund committed, but the response timed out",
-        refund.id,
-      );
-    }
-
     return structuredClone(refund);
   }
 
@@ -242,6 +188,122 @@ export class PaymentWorld implements PaymentProvider {
       payments: [...this.payments.values()],
       refunds: this.refunds,
     });
+  }
+}
+
+export interface FaultInjectingPaymentProviderDependencies {
+  provider: PaymentProvider;
+  faults: FaultSpec[];
+  trace: TraceRecorder;
+  initialWorld: WorldSnapshot;
+}
+
+export class FaultInjectingPaymentProvider implements PaymentProvider {
+  private readonly operationOccurrences = new Map<string, number>();
+  private readonly knownRefundIds = new Set<string>();
+  private readonly refundedAmounts = new Map<string, number>();
+
+  constructor(
+    private readonly dependencies: FaultInjectingPaymentProviderDependencies,
+  ) {
+    for (const refund of dependencies.initialWorld.refunds) {
+      this.knownRefundIds.add(refund.id);
+    }
+    for (const payment of dependencies.initialWorld.payments) {
+      this.refundedAmounts.set(payment.id, payment.refunded_amount);
+    }
+  }
+
+  fetchPayment(input: FetchPaymentInput): Promise<Payment> {
+    return this.dependencies.provider.fetchPayment(input);
+  }
+
+  async createRefund(input: CreateRefundInput): Promise<Refund> {
+    const occurrence = this.nextOccurrence("create_refund");
+    const beforeFault = this.findFault(
+      "timeout_before_side_effect",
+      occurrence,
+    );
+    if (beforeFault) {
+      this.recordFault(beforeFault, input.call_id);
+      throw new AmbiguousResultError();
+    }
+
+    const refund = await this.dependencies.provider.createRefund(input);
+    this.recordRefund(refund, input.call_id);
+
+    const afterFault = this.findFault("timeout_after_side_effect", occurrence);
+    if (afterFault) {
+      this.recordFault(afterFault, input.call_id, refund.id);
+      throw new AmbiguousResultError();
+    }
+    return refund;
+  }
+
+  async fetchRefundsForPayment(input: FetchRefundsInput): Promise<Refund[]> {
+    const refunds =
+      await this.dependencies.provider.fetchRefundsForPayment(input);
+    for (const refund of refunds) {
+      if (this.knownRefundIds.has(refund.id)) continue;
+      this.knownRefundIds.add(refund.id);
+      this.dependencies.trace.append("payment.refund.observed", {
+        refund: structuredClone(refund),
+        source: "reconciliation",
+      });
+    }
+    return refunds;
+  }
+
+  private recordRefund(refund: Refund, callId: string): void {
+    if (this.knownRefundIds.has(refund.id)) {
+      this.dependencies.trace.append(
+        "payment.refund.deduplicated",
+        { refund: structuredClone(refund), action_key: refund.action_key },
+        callId,
+      );
+      return;
+    }
+    this.knownRefundIds.add(refund.id);
+    const refundedAmount =
+      (this.refundedAmounts.get(refund.payment_id) ?? 0) + refund.amount;
+    this.refundedAmounts.set(refund.payment_id, refundedAmount);
+    this.dependencies.trace.append(
+      "payment.refund.created",
+      {
+        refund: structuredClone(refund),
+        payment_refunded_amount: refundedAmount,
+      },
+      callId,
+    );
+  }
+
+  private findFault(
+    type: FaultSpec["type"],
+    occurrence: number,
+  ): FaultSpec | undefined {
+    return this.dependencies.faults.find(
+      (fault) =>
+        fault.operation === "create_refund" &&
+        fault.type === type &&
+        fault.occurrence === occurrence,
+    );
+  }
+
+  private recordFault(
+    fault: FaultSpec,
+    callId: string,
+    refundId?: string,
+  ): void {
+    this.dependencies.trace.append(
+      "fault.injected",
+      {
+        fault,
+        operation: "create_refund",
+        call_id: callId,
+        ...(refundId === undefined ? {} : { refund_id: refundId }),
+      },
+      callId,
+    );
   }
 
   private nextOccurrence(operation: string): number {
