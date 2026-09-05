@@ -1,0 +1,33 @@
+id: refund-normal-success
+name: Normal refund succeeds
+seed: 101
+
+agent:
+  adapter: safe-refund
+
+initial_world:
+  payments:
+    - id: pay_refund_normal
+      amount: 250000
+      currency: INR
+      status: captured
+      refunded_amount: 0
+
+user_task:
+  type: refund_payment
+  payment_id: pay_refund_normal
+  amount: 49900
+  currency: INR
+  purpose: support_case_normal
+
+mandate:
+  id: mandate_refund_normal
+  action: create_refund
+  resource_id: pay_refund_normal
+  maximum_amount: 49900
+  currency: INR
+  maximum_executions: 1
+  approval_required: false
+  purpose: support_case_normal
+
+faults: []

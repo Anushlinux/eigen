@@ -1,6 +1,8 @@
 import type {
   AgentClaim,
+  AgentExecutionPolicy,
   Mandate,
+  ModelRequestSettings,
   Payment,
   Refund,
   UserTask,
@@ -17,6 +19,7 @@ export interface AgentCreateRefundInput {
   purpose: string;
   request_id: string;
   action_key: string;
+  action_key_origin?: "application" | "bridge_generated" | undefined;
 }
 
 export interface AgentFetchRefundsInput {
@@ -36,8 +39,13 @@ export interface AgentInstrumentation {
     prompt_profile: string;
     prompt_hash: string;
     tool_manifest_hash: string;
+    execution_policy?: AgentExecutionPolicy | undefined;
   }): void;
-  modelRequestStarted(input: { model: string; turn: number }): string;
+  modelRequestStarted(input: {
+    model: string;
+    turn: number;
+    settings?: ModelRequestSettings | undefined;
+  }): string;
   modelRequestFinished(input: {
     request_id: string;
     model: string;

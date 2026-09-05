@@ -5,10 +5,12 @@ import type {
   AgentPaymentTools,
 } from "../agents/index.js";
 import {
+  type AgentExecutionPolicy,
   type Clock,
   createRefundFingerprint,
   DeterministicClock,
   DeterministicIdGenerator,
+  type ModelRequestSettings,
   type MonotonicTimer,
   type Payment,
   type Refund,
@@ -167,6 +169,9 @@ export async function runProviderScenario(
           call_id: callId,
           request_id: agentInput.request_id,
           action_key: agentInput.action_key,
+          ...(agentInput.action_key_origin
+            ? { action_key_origin: agentInput.action_key_origin }
+            : {}),
           input: {
             payment_id: agentInput.payment_id,
             amount: agentInput.amount,
@@ -257,10 +262,15 @@ export async function runProviderScenario(
       prompt_profile: string;
       prompt_hash: string;
       tool_manifest_hash: string;
+      execution_policy?: AgentExecutionPolicy | undefined;
     }) {
       trace.append("agent.configuration.loaded", configuration);
     },
-    modelRequestStarted(request: { model: string; turn: number }): string {
+    modelRequestStarted(request: {
+      model: string;
+      turn: number;
+      settings?: ModelRequestSettings | undefined;
+    }): string {
       modelRequests += 1;
       const requestId = ids.next("model_request");
       trace.append(
@@ -355,6 +365,7 @@ export async function runProviderScenario(
   const finalWorld = structuredClone(await providerResource.snapshot());
   trace.append("world.snapshot", { snapshot: finalWorld });
   const findings = runFinancialEvaluators({
+    task_expectation: scenario.task_expectation,
     mandate: scenario.mandate,
     task: scenario.user_task,
     trace: trace.events(),

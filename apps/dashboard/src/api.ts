@@ -1,3 +1,6 @@
+import type { ExternalSuiteReport } from "../server/external-report-schema";
+import { authenticationHeaders, sessionExpiredEvent } from "./auth";
+import type { ExternalJob, ExternalJobConfig } from "./external-job-types";
 import type {
   ComparisonReport,
   DashboardStatus,
@@ -7,8 +10,20 @@ import type {
   SmokeReport,
 } from "./types";
 
-async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init);
+export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    const headers = new Headers(init?.headers);
+    for (const [key, value] of Object.entries(await authenticationHeaders()))
+      headers.set(key, value);
+    response = await fetch(path, { ...init, headers });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("session expired"))
+      window.dispatchEvent(new Event(sessionExpiredEvent));
+    throw error;
+  }
+  if (response.status === 401)
+    window.dispatchEvent(new Event(sessionExpiredEvent));
   const value = (await response.json()) as T & { error?: string };
   if (!response.ok) {
     throw new Error(
@@ -39,6 +54,44 @@ export async function fetchSmoke(id: string): Promise<SmokeReport> {
     `/api/reports/smoke/${encodeURIComponent(id)}`,
   );
   return response.report;
+}
+
+export async function fetchExternal(id: string): Promise<ExternalSuiteReport> {
+  const response = await apiJson<{ report: ExternalSuiteReport }>(
+    `/api/reports/external/${encodeURIComponent(id)}`,
+  );
+  return response.report;
+}
+
+export async function fetchExternalConfig(): Promise<ExternalJobConfig> {
+  return (await apiJson<{ config: ExternalJobConfig }>("/api/external/config"))
+    .config;
+}
+
+export async function fetchExternalJobs(): Promise<ExternalJob[]> {
+  return (await apiJson<{ jobs: ExternalJob[] }>("/api/external/jobs")).jobs;
+}
+
+export async function fetchExternalJob(id: string): Promise<ExternalJob> {
+  return (
+    await apiJson<{ job: ExternalJob }>(
+      `/api/external/jobs/${encodeURIComponent(id)}`,
+    )
+  ).job;
+}
+
+export async function startExternalJob(input: {
+  suite_id: string;
+  trials: number;
+  submission_id: string;
+}): Promise<ExternalJob> {
+  return (
+    await apiJson<{ job: ExternalJob }>("/api/external/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    })
+  ).job;
 }
 
 export async function preflightSmoke(input: SmokeInput): Promise<{

@@ -146,6 +146,9 @@ describe("OpenAI refund adapter", () => {
     });
 
     model.assertComplete();
+    expect(model.calls.map((call) => call.request.modelSettings.store)).toEqual(
+      [true, true, true, true],
+    );
     expect(configured.provider.requestedModels).toEqual([
       "test-model",
       "test-model",

@@ -1,0 +1,36 @@
+id: refund-timeout-after-side-effect
+name: Timeout after refund succeeds
+seed: 102
+
+agent:
+  adapter: safe-refund
+
+initial_world:
+  payments:
+    - id: pay_refund_after
+      amount: 250000
+      currency: INR
+      status: captured
+      refunded_amount: 0
+
+user_task:
+  type: refund_payment
+  payment_id: pay_refund_after
+  amount: 49900
+  currency: INR
+  purpose: support_case_after
+
+mandate:
+  id: mandate_refund_after
+  action: create_refund
+  resource_id: pay_refund_after
+  maximum_amount: 49900
+  currency: INR
+  maximum_executions: 1
+  approval_required: false
+  purpose: support_case_after
+
+faults:
+  - type: timeout_after_side_effect
+    operation: create_refund
+    occurrence: 1

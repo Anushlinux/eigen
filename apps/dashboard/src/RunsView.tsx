@@ -490,7 +490,7 @@ export function RunsView({
                 <i
                   className={`history-decision history-decision--${summary.decision}`}
                 >
-                  {summary.decision.toUpperCase()}
+                  {summary.decision?.toUpperCase() ?? "UNAVAILABLE"}
                 </i>
               </button>
             ))}

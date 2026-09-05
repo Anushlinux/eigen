@@ -7,12 +7,17 @@ import type {
   RunResult,
   TraceEvent,
 } from "../domain/index.js";
-import { countFindingsByCategory } from "../evaluators/index.js";
+import {
+  countFindingsByCategory,
+  FINANCIAL_EVALUATOR_VERSION,
+} from "../evaluators/index.js";
 
 export function createRunReport(result: RunResult): RunReport {
   const refunds = result.final_world.refunds;
   return {
     schema_version: "1.1",
+    task_expectation: result.scenario.task_expectation ?? "complete",
+    evaluator_version: FINANCIAL_EVALUATOR_VERSION,
     run_id: result.run_id,
     scenario_id: result.scenario.id,
     scenario_name: result.scenario.name,
@@ -84,7 +89,7 @@ export function formatMoney(amount: number, currency: string): string {
 function describeTraceEvent(event: TraceEvent): string | undefined {
   switch (event.type) {
     case "user.task.received":
-      return `User authorised one ${formatMoney(event.payload.task.amount, event.payload.task.currency)} refund`;
+      return `User requested one ${formatMoney(event.payload.task.amount, event.payload.task.currency)} refund`;
     case "tool.call.requested":
       return `Agent called create_refund (${event.payload.request_id})`;
     case "payment.refund.created":

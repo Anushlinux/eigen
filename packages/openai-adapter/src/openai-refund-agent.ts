@@ -457,6 +457,7 @@ export class OpenAIRefundAgent implements AgentAdapter {
       instructions: profile.instructions,
       model: this.options.model,
       tools: [fetchPayment, createRefund, fetchRefunds],
+      modelSettings: { store: true },
       outputType: openAIRefundClaimSchema,
     });
     const runner = new Runner({

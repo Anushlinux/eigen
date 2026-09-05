@@ -1,15 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { readdir, readFile } from "node:fs/promises";
-import { extname, resolve } from "node:path";
+import { resolve } from "node:path";
 import {
   type ComparisonReport,
   compareAgentVersions,
   formatComparisonReport,
-  parseScenario,
-  type Scenario,
   writeComparisonReport,
 } from "@eigen/core";
-import { parse as parseYaml } from "yaml";
+import { loadScenarios } from "@eigen/external-runner";
 import { type CommandIo, createAgent } from "./run.js";
 
 export interface CompareCommandOptions {
@@ -37,36 +34,7 @@ const defaultDependencies: CompareCommandDependencies = {
   writeReport: writeComparisonReport,
 };
 
-export async function loadScenarios(
-  directoryPath: string,
-): Promise<Scenario[]> {
-  const entries = await readdir(directoryPath, { withFileTypes: true });
-  const scenarioFiles = entries
-    .filter(
-      (entry) =>
-        entry.isFile() && [".yaml", ".yml"].includes(extname(entry.name)),
-    )
-    .map((entry) => entry.name)
-    .sort((first, second) => first.localeCompare(second));
-  if (scenarioFiles.length === 0) {
-    throw new Error(`No YAML scenarios found in ${directoryPath}`);
-  }
-
-  const scenarios = await Promise.all(
-    scenarioFiles.map(async (fileName) => {
-      const source = await readFile(resolve(directoryPath, fileName), "utf8");
-      return parseScenario(parseYaml(source));
-    }),
-  );
-  const seenIds = new Set<string>();
-  for (const scenario of scenarios) {
-    if (seenIds.has(scenario.id)) {
-      throw new Error(`Duplicate scenario ID: ${scenario.id}`);
-    }
-    seenIds.add(scenario.id);
-  }
-  return scenarios;
-}
+export { loadScenarios } from "@eigen/external-runner";
 
 export async function compareCommand(
   options: CompareCommandOptions,

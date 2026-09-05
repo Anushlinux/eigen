@@ -1,3 +1,6 @@
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import type {
   RazorpaySmokeExecution,
   RazorpaySmokePreflight,
@@ -230,5 +233,101 @@ describe("dashboard API", () => {
     expect(secondRun?.status).toBe(409);
     finish?.(fakeExecution());
     expect((await firstRun)?.status).toBe(200);
+  });
+});
+
+describe("external report API", () => {
+  async function savedFixture() {
+    const cwd = await mkdtemp(resolve(tmpdir(), "eigen-external-api-"));
+    await mkdir(resolve(cwd, "reports/external/suite_test"), {
+      recursive: true,
+    });
+    const suite = JSON.parse(
+      await readFile(
+        new URL("../fixtures/external-suite.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    const suitePath = resolve(cwd, "reports/external/suite_test/suite.json");
+    await writeFile(suitePath, JSON.stringify(suite));
+    return { ...fixture({ cwd }), suite, suitePath };
+  }
+
+  it("lists and reads embedded external reports without invoking any execution service", async () => {
+    const { api, suite, dependencies } = await savedFixture();
+    const response = await api(
+      new Request("http://127.0.0.1:4173/api/reports/external/suite_test"),
+    );
+    expect(response?.status).toBe(200);
+    expect(await response?.json()).toEqual({ report: suite });
+    const list = await api(new Request("http://127.0.0.1:4173/api/reports"));
+    expect(await list?.json()).toEqual({
+      reports: [
+        expect.objectContaining({
+          kind: "external",
+          id: "suite_test",
+          created_at: null,
+          availability: "ready",
+        }),
+      ],
+    });
+    expect(dependencies.prepare).not.toHaveBeenCalled();
+    expect(dependencies.execute).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["malformed", "{broken", 422],
+    ["incomplete", JSON.stringify({ schema_version: "1.0", runs: [] }), 422],
+    ["unsupported", JSON.stringify({ schema_version: "2.0" }), 422],
+  ])("returns a distinct %s error response", async (code, source, status) => {
+    const { api, suitePath } = await savedFixture();
+    await writeFile(suitePath, source);
+    const response = await api(
+      new Request("http://127.0.0.1:4173/api/reports/external/suite_test"),
+    );
+    expect(response?.status).toBe(status);
+    expect(await response?.json()).toEqual({ code, error: expect.any(String) });
+  });
+
+  it("does not disclose names from a symlinked external history directory", async () => {
+    const cwd = await mkdtemp(resolve(tmpdir(), "eigen-private-list-api-"));
+    const outside = await mkdtemp(
+      resolve(tmpdir(), "eigen-private-list-outside-"),
+    );
+    await mkdir(resolve(cwd, "reports"));
+    await mkdir(resolve(outside, "private_subdir_name"));
+    await writeFile(resolve(outside, "private_subdir_name/suite.json"), "{}");
+    await symlink(outside, resolve(cwd, "reports/external"));
+    const { api } = fixture({ cwd });
+    const list = await api(new Request("http://127.0.0.1:4173/api/reports"));
+    expect(await list?.json()).toEqual({ reports: [] });
+    const read = await api(
+      new Request(
+        "http://127.0.0.1:4173/api/reports/external/private_subdir_name",
+      ),
+    );
+    expect(read?.status).toBe(404);
+    expect(await read?.json()).toEqual({
+      code: "missing",
+      error: expect.any(String),
+    });
+  });
+
+  it("returns a distinct missing error and rejects encoded traversal", async () => {
+    const { api } = await savedFixture();
+    const response = await api(
+      new Request("http://127.0.0.1:4173/api/reports/external/absent"),
+    );
+    expect(response?.status).toBe(404);
+    expect(await response?.json()).toEqual({
+      code: "missing",
+      error: expect.any(String),
+    });
+    const traversal = await api(
+      new Request(
+        "http://127.0.0.1:4173/api/reports/external/..%2f..%2fprivate",
+      ),
+    );
+    expect(traversal?.status).toBe(404);
   });
 });
